@@ -11,7 +11,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 
 try:
-   SECRET_KEY = os.environ["SECRET_KEY"]
+    SECRET_KEY = os.environ["SECRET_KEY"]
 except KeyError:
     print('SECRET_KEY not provided by env')
 
@@ -32,7 +32,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'app'
+    'app',
+    'classroom'
 ]
 
 MIDDLEWARE_CLASSES = [
