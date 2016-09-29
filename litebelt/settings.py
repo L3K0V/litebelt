@@ -22,7 +22,7 @@ ALLOWED_HOSTS = ['*']
 ROOT_URLCONF = 'litebelt.urls'
 WSGI_APPLICATION = 'litebelt.wsgi.application'
 CORS_ORIGIN_ALLOW_ALL = True
-AUTH_USER_MODEL = 'app.Student'
+AUTH_USER_MODEL = 'app.GithubUser'
 
 # Application definition
 INSTALLED_APPS = [

@@ -18,7 +18,7 @@ STUDENT_CLASSES = (
 GENADY_TOKEN = getattr(settings, 'GENADY_TOKEN', None)
 
 
-class StudentManager(BaseUserManager):
+class GithubUserManager(BaseUserManager):
 
     def create_user(self, email, github, password=None):
         """
@@ -51,7 +51,7 @@ class StudentManager(BaseUserManager):
         return user
 
 
-class Student(AbstractBaseUser):
+class GithubUser(AbstractBaseUser):
     email = models.EmailField(
         verbose_name='email address',
         max_length=255,
@@ -73,7 +73,7 @@ class Student(AbstractBaseUser):
     is_active = models.BooleanField(default=True)
     is_admin = models.BooleanField(default=False)
 
-    objects = StudentManager()
+    objects = GithubUserManager()
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['github']
@@ -106,7 +106,7 @@ class Student(AbstractBaseUser):
         return self.is_admin
 
 
-@receiver(post_save, sender=Student, dispatch_uid="update_github_id")
+@receiver(post_save, sender=GithubUser, dispatch_uid="update_github_id")
 def update_github_id(sender, instance, **kwargs):
     if instance.github:
         pass
@@ -114,4 +114,4 @@ def update_github_id(sender, instance, **kwargs):
     gh = login(token=GENADY_TOKEN)
     gh_id = gh.user(instance.github).id
 
-    Student.objects.filter(pk=instance.pk).update(github_id=gh_id)
+    GithubUser.objects.filter(pk=instance.pk).update(github_id=gh_id)
