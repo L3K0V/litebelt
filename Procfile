@@ -1,1 +1,1 @@
-web: gunicorn dokku.wsgi --log-file -
+web: gunicorn litebelt.wsgi --log-file -
