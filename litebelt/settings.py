@@ -10,7 +10,11 @@ DEBUG = False
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 
-SECRET_KEY = os.environ["SECRET_KEY"]
+try:
+   SECRET_KEY = os.environ["SECRET_KEY"]
+except KeyError:
+    print('SECRET_KEY not provided by env')
+
 
 # Honor the 'X-Forwarded-Proto' header for request.is_secure()
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
@@ -18,6 +22,7 @@ ALLOWED_HOSTS = ['*']
 ROOT_URLCONF = 'litebelt.urls'
 WSGI_APPLICATION = 'litebelt.wsgi.application'
 CORS_ORIGIN_ALLOW_ALL = True
+AUTH_USER_MODEL = 'app.Student'
 
 # Application definition
 INSTALLED_APPS = [
@@ -27,6 +32,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'app'
 ]
 
 MIDDLEWARE_CLASSES = [
@@ -88,7 +94,7 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/1.9/topics/i18n/
 LANGUAGE_CODE = 'en-us'
-TIME_ZONE = 'UTC+2'
+TIME_ZONE = 'Europe/Sofia'
 USE_I18N = True
 USE_L10N = True
 USE_TZ = True
