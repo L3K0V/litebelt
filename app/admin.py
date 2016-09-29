@@ -3,7 +3,7 @@ from django.contrib import admin
 from django.contrib.auth.models import Group
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 
-from app.models import GithubUser
+from app.models import GithubUser, Student
 from app.forms import GithubUserCreationForm, GithubUserChangeForm
 
 
@@ -16,12 +16,11 @@ class GithubUserAdmin(BaseUserAdmin):
     # The fields to be used in displaying the User model.
     # These override the definitions on the base UserAdmin
     # that reference specific fields on auth.User.
-    list_display = ('email', 'github', 'is_admin', 'student_grade', 'student_class', 'student_number')
-    list_filter = ('is_admin', 'student_class')
+    list_display = ('email', 'github', 'is_admin')
+    list_filter = ('is_admin',)
     fieldsets = (
         (None, {'fields': ('email', 'password', 'firstname', 'lastname')}),
         ('GitHub information', {'fields': ('github', 'github_id', 'github_token')}),
-        ('Student information', {'fields': ('student_grade', 'student_class', 'student_number')}),
         ('Permissions', {'fields': ('is_admin', 'is_active')}),
 
     )
@@ -36,8 +35,19 @@ class GithubUserAdmin(BaseUserAdmin):
         ),
     )
     search_fields = ('email', 'github')
-    ordering = ('email', 'student_class')
+    ordering = ('email',)
     filter_horizontal = ()
 
+
+class StudentAdmin(admin.ModelAdmin):
+    list_display = ('user', 'student_grade', 'student_class', 'student_number')
+    list_filter = ('student_class',)
+    fieldsets = (
+        ('Github profile', {'fields': ('user',)}),
+        (None, {'fields': ('student_grade', 'student_class', 'student_number')}),
+    )
+    ordering = ('student_class',)
+
 admin.site.register(GithubUser, GithubUserAdmin)
+admin.site.register(Student, StudentAdmin)
 admin.site.unregister(Group)

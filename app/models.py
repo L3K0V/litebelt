@@ -66,10 +66,6 @@ class GithubUser(AbstractBaseUser):
     github_token = models.CharField(max_length=256, blank=True)
     avatar_url = models.CharField(max_length=256, blank=True)
 
-    student_class = models.CharField(max_length=1, choices=STUDENT_CLASSES, blank=True, null=True)
-    student_grade = models.PositiveSmallIntegerField(blank=True, null=True)
-    student_number = models.PositiveSmallIntegerField(blank=True, null=True)
-
     is_active = models.BooleanField(default=True)
     is_admin = models.BooleanField(default=False)
 
@@ -115,3 +111,11 @@ def update_github_id(sender, instance, **kwargs):
     gh_id = gh.user(instance.github).id
 
     GithubUser.objects.filter(pk=instance.pk).update(github_id=gh_id)
+
+
+class Student(models.Model):
+    user = models.OneToOneField(GithubUser, on_delete=models.CASCADE)
+
+    student_class = models.CharField(max_length=1, choices=STUDENT_CLASSES, blank=True, null=True)
+    student_grade = models.PositiveSmallIntegerField(blank=True, null=True)
+    student_number = models.PositiveSmallIntegerField(blank=True, null=True)

@@ -1,7 +1,7 @@
 import argparse
 from django.conf import settings
 from django.core.management.base import BaseCommand
-from app.models import Student
+from app.models import Student, GithubUser
 from django.db import IntegrityError
 
 import csv
@@ -32,15 +32,16 @@ class Command(BaseCommand):
             github = row[CSV_FORMAT['github']].split("/")[-1]
 
             try:
-                user = Student.objects.create_user(email, github)
-                user.student_grade = 10
-                user.student_class = CLASS_MAPPING[row[CSV_FORMAT['student_class']]]
-                user.student_number = row[CSV_FORMAT['student_number']]
-
+                user = GithubUser.objects.create_user(email, github)
                 user.firstname = row[CSV_FORMAT['name']].split()[0]
                 user.lastname = row[CSV_FORMAT['name']].split()[1]
-
                 user.save()
+
+                student = Student.objects.create(user=user,
+                                                 student_class=CLASS_MAPPING[row[CSV_FORMAT['student_class']]],
+                                                 student_grade=10,
+                                                 student_number=row[CSV_FORMAT['student_number']])
+                student.save()
                 self.stdout.write(self.style.SUCCESS('Successfully imported user "%s"' % user.email))
             except IntegrityError:
                     self.stderr.write(self.style.WARNING('Skipping duplicating github id for user "%s"' % github))
