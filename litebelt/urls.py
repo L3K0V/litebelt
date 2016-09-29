@@ -16,6 +16,9 @@ Including another URLconf
 from django.conf.urls import url
 from django.contrib import admin
 
+from classroom.views import handle
+
 urlpatterns = [
     url(r'^admin/', admin.site.urls),
+    url(r'^github/receive$', handle)
 ]

@@ -6,7 +6,7 @@ from celery import shared_task
 
 from classroom.models import AssignmentSubmission
 from classroom.models import SubmissionReview
-from api.models import Member
+from app.models import Student
 
 import tempfile
 
@@ -24,7 +24,7 @@ def review_submission(submission_pk):
     submission = AssignmentSubmission.objects.get(pk=submission_pk)
     pull_request_number = submission.pull_request.split('/')[-1]
     repo = gh.repository(submission.pull_request.split('/')[-4], submission.pull_request.split('/')[-3])
-    author = Member.objects.get(github_id=gh.me().id)
+    author = Student.objects.get(github_id=gh.me().id)
 
     if author:
         desc = 'Compiled and running without problems!'
