@@ -21,8 +21,8 @@ def handle(request):
         assignment = Assignment.objects.get(code__in=data['pull_request']['body'].split())
 
         if assignment:
-            print('Assignment found, so create submission')
-            new_submission = AssignmentSubmission.objects.create(
+
+            new_submission, created = AssignmentSubmission.objects.get_or_create(
                 assignment=assignment,
                 author=member,
                 pull_request=data['pull_request']['html_url'],
@@ -30,7 +30,6 @@ def handle(request):
                 description=data['pull_request']['body'])
 
             if new_submission:
-                print('Submission found, so execute it')
                 review_submission.delay(submission_pk=new_submission.pk)
                 return HttpResponse('Submission created!', status=200)
             else:
