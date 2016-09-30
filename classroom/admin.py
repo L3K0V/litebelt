@@ -5,11 +5,15 @@ from classroom.models import Assignment, AssignmentSubmission, AssignmentTestCas
 
 class AssignmentsAdmin(admin.ModelAdmin):
     list_display = ('name', 'assignment_type', 'target', 'start', 'end', 'code')
+    list_filter = ('assignment_type', 'target')
     readonly_fields = ('code',)
 
 
 class AssignmentSubmissionAdmin(admin.ModelAdmin):
-    pass
+    list_display = ('author', 'assignment', 'pull_request', 'grade')
+    list_filter = ('author', 'assignment')
+    readonly_fields = ('date_created', 'date_modified',)
+    search_fields = ('author', 'assignment')
 
 
 class AssignmentTestCaseAdmin(admin.ModelAdmin):

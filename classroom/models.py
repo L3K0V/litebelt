@@ -43,6 +43,9 @@ class Assignment(models.Model):
     def __str__(self):
         return self.name
 
+    class Meta:
+        verbose_name = 'Assignment'
+
 
 class AssignmentTestCase(models.Model):
     assignment = models.ForeignKey('Assignment', related_name='testcases')
@@ -51,6 +54,12 @@ class AssignmentTestCase(models.Model):
     case_output = models.TextField(max_length=8096, blank=True)
 
     flags = models.TextField(max_length=1024, blank=True)
+
+    def __str__(self):
+        return 'Testcase {}'.format(self.id)
+
+    class Meta:
+        verbose_name = 'Assignment test case'
 
 
 class AssignmentSubmission(models.Model):
@@ -64,8 +73,12 @@ class AssignmentSubmission(models.Model):
     date_created = models.DateTimeField(auto_now_add=True)
     date_modified = models.DateTimeField(auto_now=True)
 
+    def __str__(self):
+        return self.pull_request
+
     class Meta:
         unique_together = ('assignment', 'pull_request',)
+        verbose_name = 'Submission'
 
 
 class SubmissionReview(models.Model):
@@ -77,3 +90,6 @@ class SubmissionReview(models.Model):
 
     date_created = models.DateTimeField(auto_now_add=True)
     date_modified = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Review'
