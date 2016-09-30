@@ -4,6 +4,16 @@ Django settings for dokku project.
 
 import os
 import dj_database_url
+import djcelery
+
+djcelery.setup_loader()
+
+BROKER_URL = 'django://'
+
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_SEND_EVENTS = True
 
 DEBUG = False
 
@@ -32,6 +42,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'djcelery',
+    'kombu.transport.django',
     'app',
     'classroom'
 ]
@@ -107,6 +119,8 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 MEDIA_URL = '/media/'
+
+GIT_ROOT = os.path.join(BASE_DIR, 'gitfiles')
 
 # Simplified static file serving.
 # https://warehouse.python.org/project/whitenoise/

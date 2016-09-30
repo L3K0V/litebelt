@@ -6,9 +6,10 @@ from celery import shared_task
 
 from classroom.models import AssignmentSubmission
 from classroom.models import SubmissionReview
-from app.models import Student
+from app.models import GithubUser
 
 import tempfile
+import os.path
 
 from git import Repo, GitCommandError
 from github3 import login
@@ -24,7 +25,7 @@ def review_submission(submission_pk):
     submission = AssignmentSubmission.objects.get(pk=submission_pk)
     pull_request_number = submission.pull_request.split('/')[-1]
     repo = gh.repository(submission.pull_request.split('/')[-4], submission.pull_request.split('/')[-3])
-    author = Student.objects.get(github_id=gh.me().id)
+    author = GithubUser.objects.get(github_id=gh.me().id)
 
     if author:
         desc = 'Compiled and running without problems!'
@@ -32,8 +33,11 @@ def review_submission(submission_pk):
         review = SubmissionReview.objects.create(
             author=author, submission=submission, points=1, description=desc)
 
-        course = submission.assignment.course
-        course_dir = '{}/{}/{}'.format(getattr(settings, 'GIT_ROOT', None), course.year, course.initials)
+        course_dir = getattr(settings, 'GIT_ROOT', None)
+
+        if not os.path.exists(course_dir):
+            print("Cloning...")
+            Repo.clone_from("https://github.com/lifebelt/litebelt-test", course_dir)
 
         r = Repo(course_dir)
         o = r.remotes.origin
@@ -50,11 +54,12 @@ def review_submission(submission_pk):
                 r.git.apply('--ignore-space-change', '--ignore-whitespace', temp.name)
                 r.git.checkout('master')
                 r.git.checkout('.')
-                r.git.branch(D=' review#{}'.format(submission.id))
+                r.git.branch(D='review#{}'.format(submission.id))
 
                 # if everything is okay - merge and pull
 
-            except GitCommandError:
+            except GitCommandError as e:
+                print(e)
                 pr.create_comment("Git error while preparing to review...")
 
         pr.create_comment(desc)
