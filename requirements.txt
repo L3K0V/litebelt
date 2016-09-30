@@ -1,6 +1,9 @@
-dj-database-url==0.4.1
 Django==1.10.1
-gunicorn==19.6.0
+dj-database-url==0.4.1
+-e git://github.com/celery/django-celery.git@1612037675a25457de067a5ac0d6d511736e130e#egg=django_celery
+github3.py==1.0.0a4
+GitPython==2.0.8
 psycopg2==2.6.2
-whitenoise==2.0.6
+gunicorn==19.6.0
+whitenoise==3.2.2
 django-cors-headers==1.2.0

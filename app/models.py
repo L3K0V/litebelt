@@ -119,3 +119,6 @@ class Student(models.Model):
     student_class = models.CharField(max_length=1, choices=STUDENT_CLASSES, blank=True, null=True)
     student_grade = models.PositiveSmallIntegerField(blank=True, null=True)
     student_number = models.PositiveSmallIntegerField(blank=True, null=True)
+
+    def __str__(self):              # __unicode__ on Python 2
+        return self.user.email
