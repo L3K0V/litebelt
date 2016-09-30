@@ -8,7 +8,11 @@ import djcelery
 
 djcelery.setup_loader()
 
-BROKER_URL = 'django://'
+try:
+    BROKER_URL = os.environ["REDIS_URL"]
+except KeyError:
+    print('REDIS_URL not provided by env')
+
 
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
