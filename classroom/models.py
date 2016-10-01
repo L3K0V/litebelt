@@ -50,6 +50,8 @@ class Assignment(models.Model):
 class AssignmentTestCase(models.Model):
     assignment = models.ForeignKey('Assignment', related_name='testcases')
 
+    task = models.PositiveIntegerField(default=1)
+
     case_input = models.TextField(max_length=8096, blank=True)
     case_output = models.TextField(max_length=8096, blank=True)
 

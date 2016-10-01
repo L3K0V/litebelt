@@ -17,7 +17,7 @@ class AssignmentSubmissionAdmin(admin.ModelAdmin):
 
 
 class AssignmentTestCaseAdmin(admin.ModelAdmin):
-    pass
+    list_display = ('__str__', 'assignment', 'task',)
 
 admin.site.register(Assignment, AssignmentsAdmin)
 admin.site.register(AssignmentSubmission, AssignmentSubmissionAdmin)
