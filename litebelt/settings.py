@@ -36,7 +36,7 @@ ALLOWED_HOSTS = ['*']
 ROOT_URLCONF = 'litebelt.urls'
 WSGI_APPLICATION = 'litebelt.wsgi.application'
 CORS_ORIGIN_ALLOW_ALL = True
-AUTH_USER_MODEL = 'app.GithubUser'
+AUTH_USER_MODEL = 'classroom.GithubUser'
 
 # Application definition
 INSTALLED_APPS = [
@@ -48,7 +48,6 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'djcelery',
     'kombu.transport.django',
-    'app',
     'classroom'
 ]
 

@@ -1,6 +1,6 @@
 from django.http import HttpResponse
 
-from app.models import Student
+from classroom.models import Student
 from classroom.models import Assignment
 from classroom.models import AssignmentSubmission
 
