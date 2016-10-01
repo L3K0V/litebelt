@@ -323,6 +323,9 @@ def publish_result(summary, unrecognized, pull, points):
 
     pull.create_comment(''.join(sb))
 
+    if (get_earned_points(summary) == points['points__sum'] and not pull.is_merged() and pull.mergeable):
+        pull.merge()
+
 
 def get_total_points(summary):
     return sum(map(lambda x: x['task']['points'], summary))
