@@ -13,6 +13,16 @@ try:
 except KeyError:
     print('REDIS_URL not provided by env')
 
+try:
+    GENADY_TOKEN = os.environ["GENADY_TOKEN"]
+except KeyError:
+    print('GENADY_TOKEN not provided by env')
+
+try:
+    SECRET_KEY = os.environ["SECRET_KEY"]
+except KeyError:
+    print('SECRET_KEY not provided by env')
+
 
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
@@ -23,11 +33,6 @@ DEBUG = False
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
-
-try:
-    SECRET_KEY = os.environ["SECRET_KEY"]
-except KeyError:
-    print('SECRET_KEY not provided by env')
 
 
 # Honor the 'X-Forwarded-Proto' header for request.is_secure()

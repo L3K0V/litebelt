@@ -111,9 +111,10 @@ def update_github_id(sender, instance, **kwargs):
         pass
 
     gh = login(token=GENADY_TOKEN)
-    gh_id = gh.user(instance.github).id
 
-    GithubUser.objects.filter(pk=instance.pk).update(github_id=gh_id)
+    if gh:
+        gh_id = gh.user(instance.github).id
+        GithubUser.objects.filter(pk=instance.pk).update(github_id=gh_id)
 
 
 class Student(models.Model):

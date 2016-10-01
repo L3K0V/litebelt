@@ -1,7 +1,7 @@
 import argparse
 from django.conf import settings
 from django.core.management.base import BaseCommand
-from app.models import Student, GithubUser
+from classroom.models import Student, GithubUser
 from django.db import IntegrityError
 
 import csv
