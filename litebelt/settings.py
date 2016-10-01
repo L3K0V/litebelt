@@ -134,6 +134,14 @@ GIT_ROOT = os.path.join(BASE_DIR, 'gitfiles')
 # https://warehouse.python.org/project/whitenoise/
 STATICFILES_STORAGE = 'whitenoise.django.GzipManifestStaticFilesStorage'
 
+CVS_MEMBERS_IMPORT_FORMAT = {
+    'name': 'Име и фамилия',
+    'email': 'Имейл адрес',
+    'github': 'GitHub профил',
+    'student_class': 'Паралелка',
+    'student_number': 'Номер в клас'
+}
+
 try:
     from .local_settings import *
 except ImportError:

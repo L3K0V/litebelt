@@ -4,18 +4,12 @@ from django.conf import settings
 
 from celery import shared_task
 
-from classroom.models import GithubUser, Student, AssignmentTask, AssignmentSubmission
-
-from django.db.models import Sum
+from classroom.models import GithubUser, Student, AssignmentSubmission
 
 import tempfile
 import os.path
-from os import path, walk
-import re
-import shlex
-import math
+from os import walk
 from enum import Enum
-from subprocess import Popen, PIPE, TimeoutExpired
 
 from git import Repo, GitCommandError
 from github3 import login
@@ -53,14 +47,15 @@ def review_submission(submission_pk):
     api, repo, pull = initialize_repo(submission, course_dir, gh)
 
     student = Student.objects.get(user__github_id=pull.user.id)
+
     if not student:
         pull.create_comment('User not recognized as student, calling the police!')
         pull.close()
         pass
 
-    working_dir = os.path.join(course_dir, '{}/{}/{}/'.format(
+    working_dir = os.path.join(os.path.join(course_dir, str(pull.user.id)), '{}/{}/{}/'.format(
                                student.student_class,
-                               submission.assignment.assignment_index,
+                               str(submission.assignment.assignment_index).zfill(2),
                                str(student.student_number).zfill(2)))
 
     with tempfile.NamedTemporaryFile() as temp:
@@ -71,128 +66,15 @@ def review_submission(submission_pk):
             repo.git.checkout('HEAD', b='review#{}'.format(submission.id))
             repo.git.am('--ignore-space-change', '--ignore-whitespace', temp.name)
 
-            files = []
+            if not os.path.exists(working_dir):
+                print('not exists')
+                pull.create_comment('Your working folder is not right!')
+                return
+
             for root, _, filenames in walk(working_dir, topdown=False):
-                files += [
-                    (f, path.abspath(path.join(working_dir, f)))
-                    for f
-                    in filenames
-                    if (path.isfile(path.join(root, f)) and
-                        (f.endswith('.c') or f.endswith('.C')))
-                ]
-
-            # if everything is okay - merge and pull
-            summary = []
-            completed_tasks = []
-            unrecognized_files = []
-
-            tasks = AssignmentTask.objects.filter(assignment=submission.assignment)
-            tasks_count = len(tasks)
-            tasks_points = tasks.aggregate(Sum('points'))
-
-            for current, abs_path in files:
-                task_index = get_task_number_from_filename(current)
-
-                if (task_index is None or
-                        task_index > tasks_count or
-                        task_index <= 0):
-                    unrecognized_files.append({
-                        'name': current
-                    })
-                    continue
-
-                selected = tasks.get(number=task_index)
-
-                completed_tasks.append(task_index)
-                task = {}
-                task['name'] = selected.title
-                task['index'] = task_index
-                task['points'] = selected.points
-
-                compiled_name = current.split('.')[0] + '.out'
-                exec_path = os.path.abspath(
-                    os.path.join(course_dir, compiled_name))
-
-                gcc_invoke = GCC_TEMPLATE.format(shlex.quote(abs_path),
-                                                 shlex.quote(exec_path))
-
-                out, err, code = execute(gcc_invoke, timeout=10)
-                msg = out + err
-
-                if code != 0:
-                    summary.append({
-                        'status': TaskStatus.SUBMITTED,
-                        'compiled': False,
-                        'compiler_exit_code': code,
-                        'compiler_message': remove_path_from_output(
-                            os.path.abspath(course_dir), msg.decode()),
-                        'task': task
-                    })
-                    continue
-
-                testcases = []
-                for test in selected.testcases.all():
-                    try:
-                        (stdout, stderr, exitcode) = \
-                            execute(exec_path,
-                                    input=test.case_input.encode('utf-8'))
-                    except (FileNotFoundError, IOError, Exception):
-                        testcases.append({
-                            "index": test.id,
-                            "success": False,
-                            "status": ExecutionStatus.OTHER,
-                        })
-                        continue
-
-                    output = stdout.decode('latin-1') or ""
-                    output = " ".join(
-                        filter(None, [line.strip() for line in output.split('\n')]))
-                    if exitcode != 0:
-                        testcases.append({
-                            "index": test.id,
-                            "success": False,
-                            "status": ExecutionStatus.TIMEOUT,
-                            "input": test.case_input,
-                        })
-                        continue
-
-                    if output == test.case_output:
-                        testcases.append({
-                            "index": test.id,
-                            "success": True
-                        })
-                    else:
-                        testcases.append({
-                            "index": test.id,
-                            "success": False,
-                            "status": ExecutionStatus.MISMATCH,
-                            "input": test.case_input,
-                            "output": output,
-                            "expected": test.case_output,
-                        })
-
-                summary.append({
-                    "status": TaskStatus.SUBMITTED,
-                    "compiled": True,
-                    "task": task,
-                    "testcases": testcases,
-                    "compiler_message": remove_path_from_output(
-                        os.path.abspath(course_dir), msg.decode())
-                })
-
-            # Report for unsubmitted tasks
-            for unsubmitted in tasks.exclude(number__in=completed_tasks):
-                task = {}
-                task['name'] = unsubmitted.title
-                task['index'] = unsubmitted.number
-                task['points'] = unsubmitted.points
-                summary.append({
-                    'status': TaskStatus.UNSUBMITTED,
-                    'compiled': False,
-                    'task': task
-                })
-
-            publish_result(summary, unrecognized_files, pull, tasks_points)
+                if filenames:
+                    publish_result(filenames, pull)
+                    break
 
         except GitCommandError as e:
             print(e)
@@ -212,7 +94,7 @@ def review_submission(submission_pk):
 def clone_repo_if_needed(directory):
     if not os.path.exists(directory):
         print('Cloning...')
-        Repo.clone_from('https://github.com/lifebelt/litebelt-test', directory)
+        Repo.clone_from('https://github.com/elsys/c-programming-homework', directory)
 
 
 def initialize_repo(submission, directory, login):
@@ -230,126 +112,10 @@ def initialize_repo(submission, directory, login):
     return (api, repo, pr)
 
 
-def is_valid_taskname(filename):
-    for regexp_str in FILENAME_TEMPLATES:
-        match = re.match(regexp_str, filename, flags=0)
-        if match:
-            return True
+def publish_result(okay, pull):
 
-    return False
+    if okay:
+        pull.create_comment('Nice one!')
 
-
-def get_task_number_from_filename(filename):
-    for regexp_str in FILENAME_TEMPLATES:
-        match = re.match(regexp_str, filename, flags=0)
-        if match:
-            return int(match.group(1))
-    return None
-
-
-def remove_path_from_output(folder, output):
-    return output.replace(folder + os.sep, '')
-
-
-def execute(command, input=None, timeout=1):
-    proc = Popen(command, shell=True, stdout=PIPE, stderr=PIPE)
-
-    try:
-        std_out, std_err = proc.communicate(timeout=timeout, input=input)
-    except TimeoutExpired:
-        proc.kill()
-        std_out, std_err = proc.communicate()
-
-    return (std_out, std_err, proc.returncode)
-
-
-def publish_result(summary, unrecognized, pull, points):
-    sb = []
-    for task in sorted(summary, key=lambda x: x['task']['index']):
-        task_ = task["task"]
-        sb.append(
-            "## Task {}: {} [{}/{} points]\n".format(
-                task_["index"],
-                task_["name"],
-                get_points_for_task(task),
-                task_["points"]))
-
-        if task["status"] is TaskStatus.UNSUBMITTED:
-            sb.append("### Not submitted\n")
-            continue
-
-        if not task["compiled"]:
-            sb.append("Failed compiling\n")
-            sb.append("Exit code: {}\n".format(task["compiler_exit_code"]))
-            sb.append("Error\n")
-            sb.append("```\n{}\n```\n".format(task["compiler_message"]))
-            continue
-
-        if task["compiler_message"]:
-            print("Compiled with warning(s)\n")
-            sb.append("```\n{}\n```\n".format(task["compiler_message"]))
-
-        for testcase in task["testcases"]:
-            sb.append("### Testcase {}\n".format(testcase["index"]))
-
-            if testcase["success"]:
-                sb.append("passed\n")
-                continue
-
-            sb.append("failed\n")
-            if testcase["status"] is ExecutionStatus.MISMATCH:
-                sb.append("Input:\n")
-                sb.append("```\n{}\n```\n\n".format(testcase["input"]))
-                sb.append("Expected:\n")
-                sb.append("```\n{}\n```\n\n".format(testcase["expected"]))
-                sb.append("Output:\n")
-                sb.append("```\n{}\n```\n\n".format(testcase["output"]))
-            elif testcase["status"] is ExecutionStatus.TIMEOUT:
-                sb.append("Execution took more than {} seconds\n".format(TESTCASE_TIMEOUT))
-
-    if len(unrecognized) > 0:
-        sb.append('## Unrecognized files')
-        sb.append('\n')
-
-        for unrecognized in sorted(unrecognized, key=lambda x: x['name']):
-            sb.append('- {}'.format(unrecognized['name']))
-
-    earned_points = get_earned_points(summary)
-
-    sb.append('\n\n')
-    sb.append('## Overall\n\n')
-    sb.append('### Points earned: **{}** of max **{}**\n'.format(
-              earned_points, points['points__sum']))
-
-    pull.create_comment(''.join(sb))
-
-    if (get_earned_points(summary) == points['points__sum'] and not pull.is_merged() and pull.mergeable):
+    if (okay and not pull.is_merged() and pull.mergeable):
         print('Merge successfull? = {}'.format(pull.merge(commit_message='Everything looks good, merging...', squash=True)))
-
-
-def get_total_points(summary):
-    return sum(map(lambda x: x['task']['points'], summary))
-
-
-def get_points_for_task(task):
-    if "testcases" not in task:
-        return 0
-    correct_tc = sum(testcase["success"] for testcase in task["testcases"])
-
-    points = task['task']['points'] * \
-        float(correct_tc) / len(task["testcases"])
-
-    if task["compiler_message"]:
-        points -= correct_tc
-
-    return math.ceil(points)
-
-
-def get_earned_points(summary):
-    result = 0
-    for task in summary:
-        if task.get("testcases") is None:
-            continue
-
-        result += get_points_for_task(task)
-    return result
