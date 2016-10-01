@@ -4,9 +4,7 @@ from django.conf import settings
 
 from celery import shared_task
 
-from classroom.models import AssignmentSubmission
-from classroom.models import SubmissionReview
-from classroom.models import GithubUser, Student, AssignmentTask
+from classroom.models import GithubUser, Student, AssignmentTask, AssignmentSubmission
 
 import tempfile
 import os.path
@@ -22,67 +20,76 @@ GENADY_TOKEN = getattr(settings, 'GENADY_TOKEN', None)
 def review_submission(submission_pk):
 
     gh = login(token=GENADY_TOKEN)
+    course_dir = getattr(settings, 'GIT_ROOT', None)
 
     submission = AssignmentSubmission.objects.get(pk=submission_pk)
-    pull_request_number = submission.pull_request.split('/')[-1]
-    repo = gh.repository(submission.pull_request.split('/')[-4], submission.pull_request.split('/')[-3])
     author = GithubUser.objects.get(github_id=gh.me().id)
 
-    if author:
-        desc = 'Compiled and running without problems!'
+    if not author:
+        return
 
-        SubmissionReview.objects.create(author=author, submission=submission, points=1, description=desc)
+    api, repo, pull = initialize_repo(submission, course_dir, gh)
 
-        course_dir = getattr(settings, 'GIT_ROOT', None)
+    student = Student.objects.get(user__github_id=pull.user.id)
+    if not student:
+        pull.create_comment("User not recognized as student, calling the police!")
+        pull.close()
+        pass
 
-        if not os.path.exists(course_dir):
-            print("Cloning...")
-            Repo.clone_from("https://github.com/lifebelt/litebelt-test", course_dir)
+    working_dir = os.path.join(course_dir, '{}/{}/{}/'.format(
+                               student.student_class,
+                               submission.assignment.assignment_index,
+                               str(student.student_number).zfill(2)))
 
-        r = Repo(course_dir)
-        o = r.remotes.origin
-        o.pull()
+    with tempfile.NamedTemporaryFile() as temp:
+        temp.write(pull.patch())
+        temp.flush()
+        try:
+            repo.git.checkout('HEAD', b='review#{}'.format(submission.id))
+            repo.git.apply('--ignore-space-change', '--ignore-whitespace', temp.name)
 
-        pr = repo.pull_request(pull_request_number)
+            files = []
+            for root, _, filenames in walk(working_dir, topdown=False):
+                files += [
+                    (f, path.abspath(path.join(working_dir, f)))
+                    for f
+                    in filenames
+                    if (path.isfile(path.join(root, f)) and
+                        (f.endswith('.c') or f.endswith('.C')))
+                ]
 
-        student = Student.objects.get(user__github_id=pr.user.id)
+            # if everything is okay - merge and pull
+            tasks = AssignmentTask.objects.filter(assignment=submission.assignment)
 
-        if not student:
-            pr.create_comment("User not recognized as student, calling the police!")
-            pr.close()
-            pass
-
-        working_dir = os.path.join(course_dir, '{}/{}/{}/'.format(
-                                   student.student_class,
-                                   submission.assignment.assignment_index,
-                                   str(student.student_number).zfill(2)))
-
-        with tempfile.NamedTemporaryFile() as temp:
-            temp.write(pr.patch())
-            temp.flush()
+        except GitCommandError as e:
+            print(e)
+            pull.create_comment("Git error while preparing to review...")
+        finally:
             try:
-                r.git.checkout('HEAD', b='review#{}'.format(submission.id))
-                r.git.apply('--ignore-space-change', '--ignore-whitespace', temp.name)
+                print('Cleanup...')
+                repo.git.checkout('master')
+                repo.git.clean('-fd')
+                repo.git.branch(D='review#{}'.format(submission.id))
+            except GitCommandError as e:
+                print(e)
 
-                files = []
-                for root, _, filenames in walk(working_dir, topdown=False):
-                    files += [
-                        (f, path.abspath(path.join(working_dir, f)))
-                        for f
-                        in filenames
-                        if (path.isfile(path.join(root, f)) and
-                            (f.endswith('.c') or f.endswith('.C')))
-                    ]
 
-                # if everything is okay - merge and pull
-                tasks = AssignmentTask.objects.filter(assignment=submission.assignment)
+def clone_repo_if_needed(directory):
+    if not os.path.exists(directory):
+        print("Cloning...")
+        Repo.clone_from("https://github.com/lifebelt/litebelt-test", directory)
 
-            except GitCommandError:
-                pr.create_comment("Git error while preparing to review...")
-            finally:
-                r.git.clean('-f')
-                r.git.checkout('master')
-                r.git.checkout('.')
-                r.git.branch(D='review#{}'.format(submission.id))
 
-        pr.create_comment(desc)
+def initialize_repo(submission, directory, login):
+    clone_repo_if_needed(directory)
+
+    pull_request_number = submission.pull_request.split('/')[-1]
+
+    api = login.repository(submission.pull_request.split('/')[-4], submission.pull_request.split('/')[-3])
+    pr = api.pull_request(pull_request_number)
+
+    repo = Repo(directory)
+    o = repo.remotes.origin
+    o.pull()
+
+    return (api, repo, pr)

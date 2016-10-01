@@ -15,28 +15,31 @@ import json
 @method_decorator(csrf_exempt)
 def handle(request):
     data = json.loads(request.body.decode("utf-8"))
-    if ('pull_request' in data and 'action' in data and 'number' in data):
-        # if (data['action'] == 'opened' or data['action'] == 'reopened' or data['action'] == 'synchronize'):
-        member = Student.objects.get(user__github_id=data['pull_request']['user']['id'])
-        assignment = Assignment.objects.get(code__in=data['pull_request']['body'].split())
 
-        if not member:
-            return HttpResponse('User not recognized as student, calling the police!', status=200)
+    if ('pull_request' not in data and 'action' not in data and 'number' not in data):
+        # Not a pull request
+        return HttpResponse('Received but not processed', status=202)
 
-        if assignment:
-            new_submission, created = AssignmentSubmission.objects.get_or_create(
-                assignment=assignment,
-                author=member,
-                pull_request=data['pull_request']['html_url'],
-                grade=0,
-                description=data['pull_request']['body'])
+    member = Student.objects.get(user__github_id=data['pull_request']['user']['id'])
+    assignment = Assignment.objects.get(code__in=data['pull_request']['body'].split())
 
-            if new_submission:
-                review_submission.delay(submission_pk=new_submission.pk)
-                return HttpResponse('Submission created!', status=200)
-            else:
-                return HttpResponse('Submission cannot be created', status=500)
+    if not member:
+        return HttpResponse('User not recognized as student, calling the police!', status=202)
+
+    if not assignment:
+        return HttpResponse('Assigment not found matching this request', status=202)
+
+    new_submission, created = AssignmentSubmission.objects.get_or_create(
+        assignment=assignment,
+        author=member,
+        pull_request=data['pull_request']['html_url'],
+        description=data['pull_request']['body'])
+
+    if new_submission:
+        review_submission.delay(submission_pk=new_submission.pk)
+        if created:
+            return HttpResponse('Submission created, now processing!', status=201)
         else:
-            return HttpResponse('Assigment not found matching this request', status=200)
-
-    return HttpResponse('Received but submission not created', status=200)
+            return HttpResponse('Submission already created, now processing again!', 200)
+    else:
+        return HttpResponse('Submission cannot be created', status=202)
