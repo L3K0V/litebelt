@@ -70,7 +70,6 @@ class AssignmentSubmissionAdmin(admin.ModelAdmin):
     list_display = ('author', 'assignment', 'pull_request',)
     list_filter = ('author', 'assignment')
     readonly_fields = ('date_created', 'date_modified',)
-    search_fields = ('author', 'assignment')
     actions = ['force_grade']
 
     def force_grade(self, request, queryset):

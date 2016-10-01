@@ -42,7 +42,7 @@ class ExecutionStatus(Enum):
 def review_submission(submission_pk):
 
     gh = login(token=GENADY_TOKEN)
-    course_dir = os.path.join(getattr(settings, 'GIT_ROOT', None), str(submission_pk))
+    course_dir = getattr(settings, 'GIT_ROOT', None)
 
     submission = AssignmentSubmission.objects.get(pk=submission_pk)
     author = GithubUser.objects.get(github_id=gh.me().id)
@@ -216,14 +216,14 @@ def clone_repo_if_needed(directory):
 
 
 def initialize_repo(submission, directory, login):
-    clone_repo_if_needed(directory)
-
     pull_request_number = submission.pull_request.split('/')[-1]
 
     api = login.repository(submission.pull_request.split('/')[-4], submission.pull_request.split('/')[-3])
     pr = api.pull_request(pull_request_number)
 
-    repo = Repo(directory)
+    clone_repo_if_needed(os.path.join(directory, str(pr.user.id)))
+
+    repo = Repo(os.path.join(directory, str(pr.user.id)))
     o = repo.remotes.origin
     o.pull()
 
@@ -324,7 +324,7 @@ def publish_result(summary, unrecognized, pull, points):
     pull.create_comment(''.join(sb))
 
     if (get_earned_points(summary) == points['points__sum'] and not pull.is_merged() and pull.mergeable):
-        pull.merge()
+        print('Merge successfull? = {}'.format(pull.merge(commit_message='Everything looks good, merging...', squash=True)))
 
 
 def get_total_points(summary):
