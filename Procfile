@@ -1,3 +1,3 @@
 web: gunicorn litebelt.wsgi --log-file -
-celery: celery worker --beat --app litebelt --loglevel info
-beat: celery beat -app litebelt  
+celery: python manage.py celery worker --beat --app litebelt --loglevel info
+beat: python manage.py celery beat -app litebelt  

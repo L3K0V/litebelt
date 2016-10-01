@@ -5,6 +5,6 @@ github3.py==1.0.0a4
 GitPython==2.0.8
 psycopg2==2.6.2
 gunicorn==19.6.0
-redis
+redis==2.10.5
 whitenoise==3.2.2
 django-cors-headers==1.2.0

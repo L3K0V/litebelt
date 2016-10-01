@@ -2,6 +2,7 @@ from django.db import models
 import uuid
 from django.db import models
 from django.utils import timezone
+from django.conf import settings
 
 
 class Assignment(models.Model):
@@ -85,7 +86,7 @@ class AssignmentSubmission(models.Model):
 
 class SubmissionReview(models.Model):
     submission = models.ForeignKey('AssignmentSubmission', related_name='reviews')
-    author = models.ForeignKey('app.GithubUser')
+    author = models.ForeignKey(settings.AUTH_USER_MODEL)
 
     description = models.TextField()
     points = models.PositiveSmallIntegerField(default=0)
