@@ -42,7 +42,7 @@ class ExecutionStatus(Enum):
 def review_submission(submission_pk):
 
     gh = login(token=GENADY_TOKEN)
-    course_dir = getattr(settings, 'GIT_ROOT', None)
+    course_dir = os.path.join(getattr(settings, 'GIT_ROOT', None), str(submission_pk))
 
     submission = AssignmentSubmission.objects.get(pk=submission_pk)
     author = GithubUser.objects.get(github_id=gh.me().id)

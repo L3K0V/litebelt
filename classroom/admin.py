@@ -6,6 +6,8 @@ from classroom.models import GithubUser, Student
 from classroom.models import Assignment, AssignmentTask, AssignmentSubmission, AssignmentTestCase
 from classroom.forms import GithubUserCreationForm, GithubUserChangeForm
 
+from classroom.tasks import review_submission
+
 
 @admin.register(GithubUser)
 class GithubUserAdmin(BaseUserAdmin):
@@ -69,6 +71,12 @@ class AssignmentSubmissionAdmin(admin.ModelAdmin):
     list_filter = ('author', 'assignment')
     readonly_fields = ('date_created', 'date_modified',)
     search_fields = ('author', 'assignment')
+    actions = ['force_grade']
+
+    def force_grade(self, request, queryset):
+        for submission in queryset:
+            review_submission.delay(submission_pk=submission.pk)
+    force_grade.short_description = "Force grading of selected submissions"
 
 
 @admin.register(AssignmentTestCase)
