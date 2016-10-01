@@ -13,6 +13,16 @@ try:
 except KeyError:
     print('REDIS_URL not provided by env')
 
+try:
+    GENADY_TOKEN = os.environ["GENADY_TOKEN"]
+except KeyError:
+    print('GENADY_TOKEN not provided by env')
+
+try:
+    SECRET_KEY = os.environ["SECRET_KEY"]
+except KeyError:
+    print('SECRET_KEY not provided by env')
+
 
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
@@ -24,11 +34,6 @@ DEBUG = False
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 
-try:
-    SECRET_KEY = os.environ["SECRET_KEY"]
-except KeyError:
-    print('SECRET_KEY not provided by env')
-
 
 # Honor the 'X-Forwarded-Proto' header for request.is_secure()
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
@@ -36,7 +41,7 @@ ALLOWED_HOSTS = ['*']
 ROOT_URLCONF = 'litebelt.urls'
 WSGI_APPLICATION = 'litebelt.wsgi.application'
 CORS_ORIGIN_ALLOW_ALL = True
-AUTH_USER_MODEL = 'app.GithubUser'
+AUTH_USER_MODEL = 'classroom.GithubUser'
 
 # Application definition
 INSTALLED_APPS = [
@@ -48,7 +53,6 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'djcelery',
     'kombu.transport.django',
-    'app',
     'classroom'
 ]
 

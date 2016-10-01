@@ -6,7 +6,7 @@ from celery import shared_task
 
 from classroom.models import AssignmentSubmission
 from classroom.models import SubmissionReview
-from app.models import GithubUser
+from classroom.models import GithubUser
 
 import tempfile
 import os.path

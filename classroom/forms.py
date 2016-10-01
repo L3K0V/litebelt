@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib.auth.forms import ReadOnlyPasswordHashField
 
-from app.models import GithubUser
+from classroom.models import GithubUser
 
 
 class GithubUserCreationForm(forms.ModelForm):
