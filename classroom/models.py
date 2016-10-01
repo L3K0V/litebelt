@@ -155,7 +155,10 @@ class Assignment(models.Model):
 
     name = models.CharField(max_length=48)
     description = models.TextField()
+
     assignment_type = models.CharField(max_length=1, choices=ASSIGNMENT_TYPE, default=HOMEWORK)
+    assignment_index = models.PositiveIntegerField(default=1)
+
     start = models.DateTimeField(default=timezone.now)
     end = models.DateTimeField()
     target = models.CharField(max_length=3, choices=ASSIGNMENT_TARGET, default=ALL)
@@ -171,10 +174,25 @@ class Assignment(models.Model):
         verbose_name = 'Assignment'
 
 
-class AssignmentTestCase(models.Model):
-    assignment = models.ForeignKey('Assignment', related_name='testcases')
+class AssignmentTask(models.Model):
 
-    task = models.PositiveIntegerField(default=1)
+    title = models.CharField(max_length=64, blank=False)
+
+    assignment = models.ForeignKey('Assignment', related_name='tasks')
+
+    number = models.PositiveIntegerField(default=1)
+    points = models.PositiveSmallIntegerField(default=1)
+
+    def __str__(self):
+        return 'Task {} - {}'.format(self.number, self.assignment)
+
+    class Meta:
+        unique_together = ('assignment', 'number',)
+        verbose_name = 'Task'
+
+
+class AssignmentTestCase(models.Model):
+    tasks = models.ForeignKey('AssignmentTask', related_name='testcases')
 
     case_input = models.TextField(max_length=8096, blank=True)
     case_output = models.TextField(max_length=8096, blank=True)
@@ -185,7 +203,7 @@ class AssignmentTestCase(models.Model):
         return 'Testcase {}'.format(self.id)
 
     class Meta:
-        verbose_name = 'Assignment test case'
+        verbose_name = 'Task Testcase'
 
 
 class AssignmentSubmission(models.Model):

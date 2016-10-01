@@ -20,8 +20,10 @@ def handle(request):
         member = Student.objects.get(user__github_id=data['pull_request']['user']['id'])
         assignment = Assignment.objects.get(code__in=data['pull_request']['body'].split())
 
-        if assignment:
+        if not member:
+            return HttpResponse('User not recognized as student, calling the police!', status=200)
 
+        if assignment:
             new_submission, created = AssignmentSubmission.objects.get_or_create(
                 assignment=assignment,
                 author=member,

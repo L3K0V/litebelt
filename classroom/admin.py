@@ -4,7 +4,7 @@ from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 
 from classroom.models import GithubUser, Student
 from classroom.forms import GithubUserCreationForm, GithubUserChangeForm
-from classroom.models import Assignment, AssignmentSubmission, AssignmentTestCase
+from classroom.models import Assignment, AssignmentTask, AssignmentSubmission, AssignmentTestCase
 
 
 class GithubUserAdmin(BaseUserAdmin):
@@ -50,9 +50,14 @@ class StudentAdmin(admin.ModelAdmin):
 
 
 class AssignmentsAdmin(admin.ModelAdmin):
-    list_display = ('name', 'assignment_type', 'target', 'start', 'end', 'code')
+    list_display = ('name', 'assignment_type', 'assignment_index', 'target', 'start', 'end', 'code')
     list_filter = ('assignment_type', 'target')
     readonly_fields = ('code',)
+
+
+class AssignmentTaskAdmin(admin.ModelAdmin):
+    list_display = ('title', 'assignment', 'number', 'points')
+    list_filter = ('assignment',)
 
 
 class AssignmentSubmissionAdmin(admin.ModelAdmin):
@@ -63,11 +68,13 @@ class AssignmentSubmissionAdmin(admin.ModelAdmin):
 
 
 class AssignmentTestCaseAdmin(admin.ModelAdmin):
-    list_display = ('__str__', 'assignment', 'task',)
+    list_display = ('__str__', 'tasks')
+    list_filter = ('tasks',)
 
 admin.site.register(GithubUser, GithubUserAdmin)
 admin.site.register(Student, StudentAdmin)
 admin.site.unregister(Group)
 admin.site.register(Assignment, AssignmentsAdmin)
+admin.site.register(AssignmentTask, AssignmentTaskAdmin)
 admin.site.register(AssignmentSubmission, AssignmentSubmissionAdmin)
 admin.site.register(AssignmentTestCase, AssignmentTestCaseAdmin)
