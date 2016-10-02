@@ -3,10 +3,13 @@ from django.contrib.auth.models import Group
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 
 from classroom.models import GithubUser, Student
+from classroom.models import Assignment, AssignmentTask, AssignmentSubmission, AssignmentTestCase
 from classroom.forms import GithubUserCreationForm, GithubUserChangeForm
-from classroom.models import Assignment, AssignmentSubmission, AssignmentTestCase
+
+from classroom.tasks import review_submission
 
 
+@admin.register(GithubUser)
 class GithubUserAdmin(BaseUserAdmin):
     # The forms to add and change user instances
     form = GithubUserChangeForm
@@ -39,6 +42,7 @@ class GithubUserAdmin(BaseUserAdmin):
     filter_horizontal = ()
 
 
+@admin.register(Student)
 class StudentAdmin(admin.ModelAdmin):
     list_display = ('user', 'student_grade', 'student_class', 'student_number')
     list_filter = ('student_class',)
@@ -49,25 +53,34 @@ class StudentAdmin(admin.ModelAdmin):
     ordering = ('student_class',)
 
 
+@admin.register(Assignment)
 class AssignmentsAdmin(admin.ModelAdmin):
-    list_display = ('name', 'assignment_type', 'target', 'start', 'end', 'code')
-    list_filter = ('assignment_type', 'target')
+    list_display = ('name', 'assignment_index', 'start', 'end', 'code')
     readonly_fields = ('code',)
 
 
+@admin.register(AssignmentTask)
+class AssignmentTaskAdmin(admin.ModelAdmin):
+    list_display = ('title', 'assignment', 'number', 'points')
+    list_filter = ('assignment',)
+
+
+@admin.register(AssignmentSubmission)
 class AssignmentSubmissionAdmin(admin.ModelAdmin):
-    list_display = ('author', 'assignment', 'pull_request', 'grade')
+    list_display = ('author', 'assignment', 'pull_request',)
     list_filter = ('author', 'assignment')
     readonly_fields = ('date_created', 'date_modified',)
-    search_fields = ('author', 'assignment')
+    actions = ['force_grade']
+
+    def force_grade(self, request, queryset):
+        for submission in queryset:
+            review_submission.delay(submission_pk=submission.pk)
+    force_grade.short_description = "Force grading of selected submissions"
 
 
+@admin.register(AssignmentTestCase)
 class AssignmentTestCaseAdmin(admin.ModelAdmin):
-    list_display = ('__str__', 'assignment', 'task',)
+    list_display = ('__str__', 'tasks')
+    list_filter = ('tasks',)
 
-admin.site.register(GithubUser, GithubUserAdmin)
-admin.site.register(Student, StudentAdmin)
 admin.site.unregister(Group)
-admin.site.register(Assignment, AssignmentsAdmin)
-admin.site.register(AssignmentSubmission, AssignmentSubmissionAdmin)
-admin.site.register(AssignmentTestCase, AssignmentTestCaseAdmin)
