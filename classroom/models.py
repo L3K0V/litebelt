@@ -3,6 +3,7 @@ from django.db import models
 from django.utils import timezone
 from django.conf import settings
 from datetime import timedelta
+import math
 
 from django.db.models.signals import post_save
 from django.dispatch import receiver
@@ -22,7 +23,7 @@ STUDENT_CLASSES = (
 GENADY_TOKEN = getattr(settings, 'GENADY_TOKEN', None)
 
 
-def get_deadline():
+def get_proposed_deadline():
     return timezone.now() + timedelta(days=5)
 
 
@@ -144,15 +145,26 @@ class Student(models.Model):
 class Assignment(models.Model):
     name = models.CharField(max_length=64)
 
-    assignment_index = models.PositiveIntegerField(default=1)
+    number = models.PositiveIntegerField(default=1)
 
-    start = models.DateTimeField(default=timezone.now)
-    end = models.DateTimeField(default=get_deadline)
+    start = models.DateTimeField()
+    end = models.DateTimeField()
 
     code = models.CharField(max_length=200, default=uuid.uuid4, editable=False)
 
     date_created = models.DateTimeField(auto_now_add=True)
     date_modified = models.DateTimeField(auto_now=True)
+
+    def get_current_score_ratio(self):
+        time_left = self.end - timezone.now()
+        penalty = 1.0
+
+        if time_left.days > 0:
+            return penalty
+
+        multipler = abs(math.floor(time_left.days / 7))
+
+        return 1.0 * (0.7 ** int(multipler))
 
     def __str__(self):
         return self.name
@@ -169,6 +181,7 @@ class AssignmentTask(models.Model):
 
     number = models.PositiveIntegerField(default=1)
     points = models.PositiveSmallIntegerField(default=1)
+
 
     def __str__(self):
         return 'Task {} - {}'.format(self.number, self.assignment)
@@ -194,14 +207,11 @@ class AssignmentTestCase(models.Model):
 
 
 class AssignmentSubmission(models.Model):
-    assignment = models.ForeignKey('Assignment', related_name='submissions')
     author = models.ForeignKey(Student)
 
-    pull_request = models.URLField(blank=True, null=True)
-    description = models.CharField(max_length=256, blank=True)
+    assignment = models.ForeignKey('Assignment', related_name='submissions')
 
-    date_created = models.DateTimeField(auto_now_add=True)
-    date_modified = models.DateTimeField(auto_now=True)
+    pull_request = models.URLField(blank=True, null=True)
 
     def __str__(self):
         return self.pull_request

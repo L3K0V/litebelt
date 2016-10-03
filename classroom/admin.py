@@ -55,7 +55,7 @@ class StudentAdmin(admin.ModelAdmin):
 
 @admin.register(Assignment)
 class AssignmentsAdmin(admin.ModelAdmin):
-    list_display = ('name', 'assignment_index', 'start', 'end', 'code')
+    list_display = ('name', 'number', 'start', 'end', 'get_current_score_ratio', 'code')
     readonly_fields = ('code',)
 
 
@@ -69,7 +69,6 @@ class AssignmentTaskAdmin(admin.ModelAdmin):
 class AssignmentSubmissionAdmin(admin.ModelAdmin):
     list_display = ('author', 'assignment', 'pull_request',)
     list_filter = ('author', 'assignment')
-    readonly_fields = ('date_created', 'date_modified',)
     actions = ['force_grade']
 
     def force_grade(self, request, queryset):

@@ -1,24 +1,25 @@
 from __future__ import absolute_import
 
+from django.db.models import Sum
 from django.conf import settings
 
 from celery import shared_task
+from celery.utils.log import get_task_logger
 
 from classroom.models import GithubUser, Student, AssignmentTask, AssignmentSubmission
 
-from django.db.models import Sum
-
-import tempfile
-import os.path
-from os import path, walk
 import re
 import shlex
 import math
+import tempfile
 from enum import Enum
+from os import path, walk, sep
 from subprocess import Popen, PIPE, TimeoutExpired
 
 from git import Repo, GitCommandError
 from github3 import login
+
+log = get_task_logger(__name__)
 
 GENADY_TOKEN = getattr(settings, 'GENADY_TOKEN', None)
 COURSE_REPO = getattr(settings, 'COURSE_REPO', None)
@@ -59,7 +60,7 @@ def review_submission(submission_pk):
         pull.close()
         pass
 
-    working_dir = os.path.join(course_dir, '{}/{}/{}/'.format(
+    working_dir = path.join(course_dir, '{}/{}/{}/'.format(
                                student.student_class,
                                str(submission.assignment.assignment_index).zfill(2),
                                str(student.student_number).zfill(2)))
@@ -111,8 +112,8 @@ def review_submission(submission_pk):
                 task['points'] = selected.points
 
                 compiled_name = current.split('.')[0] + '.out'
-                exec_path = os.path.abspath(
-                    os.path.join(course_dir, compiled_name))
+                exec_path = path.abspath(
+                    path.join(course_dir, compiled_name))
 
                 gcc_invoke = GCC_TEMPLATE.format(shlex.quote(abs_path),
                                                  shlex.quote(exec_path))
@@ -126,7 +127,7 @@ def review_submission(submission_pk):
                         'compiled': False,
                         'compiler_exit_code': code,
                         'compiler_message': remove_path_from_output(
-                            os.path.abspath(course_dir), msg.decode()),
+                            path.abspath(course_dir), msg.decode()),
                         'task': task
                     })
                     continue
@@ -178,7 +179,7 @@ def review_submission(submission_pk):
                     "task": task,
                     "testcases": testcases,
                     "compiler_message": remove_path_from_output(
-                        os.path.abspath(course_dir), msg.decode())
+                        path.abspath(course_dir), msg.decode())
                 })
 
             # Report for unsubmitted tasks
@@ -211,7 +212,7 @@ def review_submission(submission_pk):
 
 
 def clone_repo_if_needed(directory):
-    if not os.path.exists(directory):
+    if not path.exists(directory):
         print('Cloning...')
         Repo.clone_from(COURSE_REPO, directory)
 
@@ -222,9 +223,9 @@ def initialize_repo(submission, directory, login):
     api = login.repository(submission.pull_request.split('/')[-4], submission.pull_request.split('/')[-3])
     pr = api.pull_request(pull_request_number)
 
-    clone_repo_if_needed(os.path.join(directory, str(pr.user.id)))
+    clone_repo_if_needed(path.join(directory, str(pr.user.id)))
 
-    repo = Repo(os.path.join(directory, str(pr.user.id)))
+    repo = Repo(path.join(directory, str(pr.user.id)))
     o = repo.remotes.origin
     o.pull()
 
@@ -249,7 +250,7 @@ def get_task_number_from_filename(filename):
 
 
 def remove_path_from_output(folder, output):
-    return output.replace(folder + os.sep, '')
+    return output.replace(folder + sep, '')
 
 
 def execute(command, input=None, timeout=1):
