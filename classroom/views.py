@@ -20,6 +20,10 @@ def handle(request):
         # Not a pull request
         return HttpResponse('Received but not processed', status=202)
 
+    if (data['action'] == 'closed'):
+        # We are not supporting this hook when pull-request is closing
+        return HttpResponse('Received but already processed and finished', status=202)
+
     member = Student.objects.get(user__github_id=data['pull_request']['user']['id'])
     assignment = Assignment.objects.get(code__in=data['pull_request']['body'].split())
 

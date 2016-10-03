@@ -23,6 +23,7 @@ try:
 except KeyError:
     print('SECRET_KEY not provided by env')
 
+COURSE_REPO = 'https://github.com/elsys/c-programming-homework'
 
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'

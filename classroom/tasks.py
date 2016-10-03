@@ -21,6 +21,7 @@ from git import Repo, GitCommandError
 from github3 import login
 
 GENADY_TOKEN = getattr(settings, 'GENADY_TOKEN', None)
+COURSE_REPO = getattr(settings, 'COURSE_REPO', None)
 
 TESTCASE_TIMEOUT = 1
 GCC_TEMPLATE = 'gcc -Wall -std=c11 -pedantic {0} -o {1} -lm 2>&1'
@@ -38,7 +39,7 @@ class ExecutionStatus(Enum):
     OTHER = 3
 
 
-@shared_task
+@shared_task()
 def review_submission(submission_pk):
 
     gh = login(token=GENADY_TOKEN)
@@ -60,7 +61,7 @@ def review_submission(submission_pk):
 
     working_dir = os.path.join(course_dir, '{}/{}/{}/'.format(
                                student.student_class,
-                               submission.assignment.assignment_index,
+                               str(submission.assignment.assignment_index).zfill(2),
                                str(student.student_number).zfill(2)))
 
     with tempfile.NamedTemporaryFile() as temp:
@@ -212,7 +213,7 @@ def review_submission(submission_pk):
 def clone_repo_if_needed(directory):
     if not os.path.exists(directory):
         print('Cloning...')
-        Repo.clone_from('https://github.com/lifebelt/litebelt-test', directory)
+        Repo.clone_from(COURSE_REPO, directory)
 
 
 def initialize_repo(submission, directory, login):
