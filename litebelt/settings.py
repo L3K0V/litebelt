@@ -35,7 +35,7 @@ CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_SEND_EVENTS = True
 
-GEANDY_GDRIVE_AUTH_FILE = os.path.join(BASE_DIR, 'Litebelt-f9240aeb9288.json')
+GEANDY_GDRIVE_AUTH_FILE = os.path.join(BASE_DIR, 'googledrive.json')
 
 # Honor the 'X-Forwarded-Proto' header for request.is_secure()
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
