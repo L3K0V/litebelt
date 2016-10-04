@@ -2,7 +2,6 @@ import uuid
 from django.db import models
 from django.utils import timezone
 from django.conf import settings
-from datetime import timedelta
 import math
 
 from django.db.models.signals import post_save
@@ -21,10 +20,6 @@ STUDENT_CLASSES = (
 )
 
 GENADY_TOKEN = getattr(settings, 'GENADY_TOKEN', None)
-
-
-def get_proposed_deadline():
-    return timezone.now() + timedelta(days=5)
 
 
 class GithubUserManager(BaseUserManager):
@@ -141,6 +136,9 @@ class Student(models.Model):
     def __str__(self):
         return self.user.email
 
+    class Meta:
+        unique_together = ('student_grade', 'student_class', 'student_number',)
+
 
 class Assignment(models.Model):
     name = models.CharField(max_length=64)
@@ -181,7 +179,6 @@ class AssignmentTask(models.Model):
 
     number = models.PositiveIntegerField(default=1)
     points = models.PositiveSmallIntegerField(default=1)
-
 
     def __str__(self):
         return 'Task {} - {}'.format(self.number, self.assignment)
