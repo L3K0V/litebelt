@@ -8,6 +8,11 @@ import djcelery
 
 djcelery.setup_loader()
 
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
+
+DEBUG = False
+
 try:
     BROKER_URL = os.environ["REDIS_URL"]
 except KeyError:
@@ -30,11 +35,7 @@ CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_SEND_EVENTS = True
 
-DEBUG = False
-
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
-
+GEANDY_GDRIVE_AUTH_FILE = os.path.join(BASE_DIR, 'Litebelt-f9240aeb9288.json')
 
 # Honor the 'X-Forwarded-Proto' header for request.is_secure()
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
