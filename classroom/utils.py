@@ -4,6 +4,7 @@ from django.conf import settings
 from oauth2client.service_account import ServiceAccountCredentials
 
 GENADY_CREDENTIALS = getattr(settings, 'GEANDY_GDRIVE_AUTH_FILE', None)
+GOOGLE_DRIVE_DOC_ID = getattr(settings, 'GOOGLE_DRIVE_DOC_ID', None)
 
 
 class HeadquartersHelper(object):
@@ -11,7 +12,7 @@ class HeadquartersHelper(object):
         scope = ['https://spreadsheets.google.com/feeds']
         credentials = ServiceAccountCredentials.from_json_keyfile_name(GENADY_CREDENTIALS, scope)
         self.gs = gspread.authorize(credentials)
-        self.headquarters = self.gs.open_by_key('1o_8yzlr0hCjZ4iA_ccmDRPTCv1o6bBsA47GOy9ER5gI')
+        self.headquarters = self.gs.open_by_key(GOOGLE_DRIVE_DOC_ID)
 
     def select_worksheet(self, name=None):
         """

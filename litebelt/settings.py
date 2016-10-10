@@ -36,6 +36,7 @@ CELERY_RESULT_SERIALIZER = 'json'
 CELERY_SEND_EVENTS = True
 
 GEANDY_GDRIVE_AUTH_FILE = os.path.join(BASE_DIR, 'googledrive.json')
+GOOGLE_DRIVE_DOC_ID = '1eLAm7mQ0s5NvEYH8Y3w9btwD8kcAjiHOJRZvGVJBe8s'
 
 # Honor the 'X-Forwarded-Proto' header for request.is_secure()
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
@@ -112,6 +113,14 @@ AUTH_PASSWORD_VALIDATORS = [
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
     },
 ]
+
+CVS_MEMBERS_IMPORT_FORMAT = {
+    'name': 'Име и фамилия',
+    'email': 'Имейл адрес',
+    'github': 'GitHub профил',
+    'student_class': 'Паралелка',
+    'student_number': 'Номер в клас'
+}
 
 
 # Internationalization
