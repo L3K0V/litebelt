@@ -97,7 +97,7 @@ def review_submission(submission_pk):
 
             for current, abs_path in files:
                 task_index = get_task_number_from_filename(current)
-                
+
                 if (task_index is None or
                         task_index > tasks_count or
                         task_index <= 0):

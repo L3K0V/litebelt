@@ -131,6 +131,7 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 MEDIA_URL = '/media/'
 
 GIT_ROOT = os.path.join(BASE_DIR, 'gitfiles')
+FIXTURE_DIRS = [BASE_DIR, ]
 
 # Simplified static file serving.
 # https://warehouse.python.org/project/whitenoise/
