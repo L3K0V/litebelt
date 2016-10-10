@@ -63,7 +63,7 @@ def review_submission(submission_pk):
         pull.close()
         pass
 
-    working_dir = path.join(course_dir, '{}/{}/{}/'.format(
+    working_dir = path.join(path.join(course_dir, str(pull.user.id)), '{}/{}/{}/'.format(
                             student.student_class,
                             str(submission.assignment.number).zfill(2),
                             str(student.student_number).zfill(2)))
@@ -97,7 +97,7 @@ def review_submission(submission_pk):
 
             for current, abs_path in files:
                 task_index = get_task_number_from_filename(current)
-
+                
                 if (task_index is None or
                         task_index > tasks_count or
                         task_index <= 0):
@@ -342,10 +342,10 @@ def publish_to_headquarters(summary, name, homework, penalty):
     hq.select_worksheet('Grades')
 
     current_points = HeadquartersHelper.formula_to_points(hq.get_student_homework(name, homework)[2])
-    review_points = [get_points_for_task(task) * penalty for task in sorted(summary, key=lambda x: x['task']['index'])]
-
+    review_points = [math.ceil(get_points_for_task(task) * penalty) for task in sorted(summary, key=lambda x: x['task']['index'])]
     new_points = list(map(lambda pair: max(pair),
                       itertools.zip_longest(current_points, review_points, fillvalue=0)))
+
     hq.update_student_homework(name, homework, HeadquartersHelper.points_to_formula(new_points))
 
 

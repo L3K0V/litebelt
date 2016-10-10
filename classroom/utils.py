@@ -42,9 +42,6 @@ class HeadquartersHelper(object):
         """
         Update students homework providing new cell value for the spreadsheets.
         Consider passing formula instead of value.
-
-        Returns tuple of string value, numberic value and the formula value of
-        the updated homework for given student.
         """
         if not self.worksheet:
             raise ValueError('You must select working sheet before operating')
@@ -52,9 +49,7 @@ class HeadquartersHelper(object):
         homework = self.worksheet.find('H{}'.format(hw))
         student = self.worksheet.find(name)
 
-        cell = self.worksheet.update_cell(student.row, homework.col, value)
-
-        return (cell.value, cell.numeric_value, cell.input_value)
+        self.worksheet.update_cell(student.row, homework.col, value)
 
     @staticmethod
     def formula_to_points(f):
