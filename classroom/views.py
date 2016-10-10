@@ -36,8 +36,7 @@ def handle(request):
     new_submission, created = AssignmentSubmission.objects.get_or_create(
         assignment=assignment,
         author=member,
-        pull_request=data['pull_request']['html_url'],
-        description=data['pull_request']['body'])
+        pull_request=data['pull_request']['html_url'])
 
     if new_submission:
         review_submission.delay(submission_pk=new_submission.pk)

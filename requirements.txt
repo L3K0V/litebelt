@@ -3,8 +3,11 @@ dj-database-url==0.4.1
 -e git://github.com/celery/django-celery.git@1612037675a25457de067a5ac0d6d511736e130e#egg=django_celery
 -e git+https://github.com/sigmavirus24/github3.py.git@bbed706433db4c37fbc826f8eab92701b0be5bea#egg=github3.py
 GitPython==2.0.8
+gspread==0.4.1
 psycopg2==2.6.2
 gunicorn==19.6.0
 redis==2.10.5
 whitenoise==3.2.2
 django-cors-headers==1.2.0
+oauth2client==3.0.0
+pyOpenSSL==16.1.0

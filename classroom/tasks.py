@@ -6,12 +6,14 @@ from django.conf import settings
 from celery import shared_task
 from celery.utils.log import get_task_logger
 
+from classroom.utils import HeadquartersHelper
 from classroom.models import GithubUser, Student, AssignmentTask, AssignmentSubmission
 
 import re
 import shlex
 import math
 import tempfile
+import itertools
 from enum import Enum
 from os import path, walk, sep
 from subprocess import Popen, PIPE, TimeoutExpired
@@ -44,6 +46,7 @@ class ExecutionStatus(Enum):
 def review_submission(submission_pk):
 
     gh = login(token=GENADY_TOKEN)
+
     course_dir = getattr(settings, 'GIT_ROOT', None)
 
     submission = AssignmentSubmission.objects.get(pk=submission_pk)
@@ -60,10 +63,10 @@ def review_submission(submission_pk):
         pull.close()
         pass
 
-    working_dir = path.join(course_dir, '{}/{}/{}/'.format(
-                               student.student_class,
-                               str(submission.assignment.assignment_index).zfill(2),
-                               str(student.student_number).zfill(2)))
+    working_dir = path.join(path.join(course_dir, str(pull.user.id)), '{}/{}/{}/'.format(
+                            student.student_class,
+                            str(submission.assignment.number).zfill(2),
+                            str(student.student_number).zfill(2)))
 
     with tempfile.NamedTemporaryFile() as temp:
         temp.write(pull.patch())
@@ -196,6 +199,11 @@ def review_submission(submission_pk):
 
             publish_result(summary, unrecognized_files, pull, tasks_points)
 
+            publish_to_headquarters(summary,
+                                    student.user.get_full_name(),
+                                    submission.assignment.number,
+                                    submission.assignment.get_current_score_ratio())
+
         except GitCommandError as e:
             print(e)
             pull.create_comment('I have some troubles!')
@@ -326,7 +334,19 @@ def publish_result(summary, unrecognized, pull, points):
     pull.create_comment(''.join(sb))
 
     if (get_earned_points(summary) == points['points__sum'] and not pull.is_merged() and pull.mergeable):
-        print('Merge successfull? = {}'.format(pull.merge(commit_message='Everything looks good, merging...', squash=True)))
+        pull.merge(commit_message='Everything looks good, merging...', squash=True)
+
+
+def publish_to_headquarters(summary, name, homework, penalty):
+    hq = HeadquartersHelper()
+    hq.select_worksheet('Grades')
+
+    current_points = HeadquartersHelper.formula_to_points(hq.get_student_homework(name, homework)[2])
+    review_points = [math.ceil(get_points_for_task(task) * penalty) for task in sorted(summary, key=lambda x: x['task']['index'])]
+    new_points = list(map(lambda pair: max(pair),
+                      itertools.zip_longest(current_points, review_points, fillvalue=0)))
+
+    hq.update_student_homework(name, homework, HeadquartersHelper.points_to_formula(new_points))
 
 
 def get_total_points(summary):

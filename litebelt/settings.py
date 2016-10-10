@@ -8,6 +8,11 @@ import djcelery
 
 djcelery.setup_loader()
 
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
+
+DEBUG = False
+
 try:
     BROKER_URL = os.environ["REDIS_URL"]
 except KeyError:
@@ -30,11 +35,8 @@ CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_SEND_EVENTS = True
 
-DEBUG = False
-
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
-
+GEANDY_GDRIVE_AUTH_FILE = os.path.join(BASE_DIR, 'googledrive.json')
+GOOGLE_DRIVE_DOC_ID = '1eLAm7mQ0s5NvEYH8Y3w9btwD8kcAjiHOJRZvGVJBe8s'
 
 # Honor the 'X-Forwarded-Proto' header for request.is_secure()
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
@@ -112,6 +114,14 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+CVS_MEMBERS_IMPORT_FORMAT = {
+    'name': 'Име и фамилия',
+    'email': 'Имейл адрес',
+    'github': 'GitHub профил',
+    'student_class': 'Паралелка',
+    'student_number': 'Номер в клас'
+}
+
 
 # Internationalization
 # https://docs.djangoproject.com/en/1.9/topics/i18n/
@@ -130,6 +140,7 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 MEDIA_URL = '/media/'
 
 GIT_ROOT = os.path.join(BASE_DIR, 'gitfiles')
+FIXTURE_DIRS = [BASE_DIR, ]
 
 # Simplified static file serving.
 # https://warehouse.python.org/project/whitenoise/
