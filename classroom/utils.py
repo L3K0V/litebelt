@@ -56,14 +56,14 @@ class HeadquartersHelper(object):
     def formula_to_points(f):
         """
         Converts formula in list of points.
-        Example: '=2+5+10+1' will return [2, 5, 10, 1]
+        Example: '=2.5+5+10+1' will return [2.5, 5.0, 10.0, 1.0]
         """
-        return list(map(int, ' '.join(re.split('=|\+', f)).split()))
+        return list(map(float, ' '.join(re.split('=|\+', f)).split()))
 
     @staticmethod
     def points_to_formula(p):
         """
         Converts list of points to formula.
-        Example: [3, 5, 10, 3] will return '=3+5+10+3'
+        Example: [3.5, 5, 10, 3] will return '=3.5+5.0+10.0+3.0'
         """
         return '={}'.format('+'.join(list(map(str, p))))

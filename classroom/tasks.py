@@ -343,9 +343,9 @@ def publish_to_headquarters(summary, name, homework, penalty):
     hq.select_worksheet('Grades')
 
     current_points = HeadquartersHelper.formula_to_points(hq.get_student_homework(name, homework)[2])
-    review_points = [math.ceil(get_points_for_task(task) * penalty) for task in sorted(summary, key=lambda x: x['task']['index'])]
+    review_points = [get_points_for_task(task) * penalty for task in sorted(summary, key=lambda x: x['task']['index'])]
     new_points = list(map(lambda pair: max(pair),
-                      itertools.zip_longest(current_points, review_points, fillvalue=0)))
+                      itertools.zip_longest(current_points, review_points, fillvalue=0.0)))
 
     hq.update_student_homework(name, homework, HeadquartersHelper.points_to_formula(new_points))
 
