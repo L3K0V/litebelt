@@ -197,7 +197,8 @@ def review_submission(submission_pk):
                     'task': task
                 })
 
-            publish_result(summary, unrecognized_files, pull, tasks_points)
+            publish_result(summary, unrecognized_files, pull, tasks_points,
+                           submission.assignment.get_current_score_ratio())
 
             publish_to_headquarters(summary,
                                     student.user.get_full_name(),
@@ -273,7 +274,7 @@ def execute(command, input=None, timeout=1):
     return (std_out, std_err, proc.returncode)
 
 
-def publish_result(summary, unrecognized, pull, points):
+def publish_result(summary, unrecognized, pull, points, penalty):
     sb = []
     for task in sorted(summary, key=lambda x: x['task']['index']):
         task_ = task["task"]
@@ -333,7 +334,7 @@ def publish_result(summary, unrecognized, pull, points):
 
     pull.create_comment(''.join(sb))
 
-    if (get_earned_points(summary) == points['points__sum'] and not pull.is_merged() and pull.mergeable):
+    if (get_earned_points(summary) >= points['points__sum'] * penalty and not pull.is_merged() and pull.mergeable):
         pull.merge(commit_message='Everything looks good, merging...', squash=True)
 
 
