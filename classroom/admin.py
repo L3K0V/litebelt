@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.conf import settings
 from django.contrib.auth.models import Group
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 
@@ -7,6 +8,10 @@ from classroom.models import Assignment, AssignmentTask, AssignmentSubmission, A
 from classroom.forms import GithubUserCreationForm, GithubUserChangeForm
 
 from classroom.tasks import review_submission
+
+from github3 import login
+
+GENADY_TOKEN = getattr(settings, 'GENADY_TOKEN', None)
 
 
 @admin.register(GithubUser)
@@ -40,6 +45,19 @@ class GithubUserAdmin(BaseUserAdmin):
     search_fields = ('email', 'github')
     ordering = ('email',)
     filter_horizontal = ()
+    actions = ['refresh_github_id', ]
+
+    def refresh_github_id(self, request, queryset):
+        gh = login(token=GENADY_TOKEN)
+
+        # Failed logging on github
+        if not gh:
+            return
+
+        for user in queryset:
+            gh_id = gh.user(user.github).id
+            GithubUser.objects.filter(pk=user.pk).update(github_id=gh_id)
+    refresh_github_id.short_description = "Refresh GitHub ID of selected users"
 
 
 @admin.register(Student)
@@ -68,12 +86,17 @@ class AssignmentTaskAdmin(admin.ModelAdmin):
 class AssignmentSubmissionAdmin(admin.ModelAdmin):
     list_display = ('author', 'pull_request', 'merged')
     list_filter = ('author', 'merged')
-    actions = ['force_grade']
+    actions = ['force_grade', 'force_grade_and_merge']
 
     def force_grade(self, request, queryset):
         for submission in queryset:
-            review_submission.delay(submission_pk=submission.pk)
+            review_submission.delay(submission_pk=submission.pk, force_merge=False)
     force_grade.short_description = "Force grading of selected submissions"
+
+    def force_grade_and_merge(self, request, queryset):
+        for submission in queryset.filter(merged=False):
+            review_submission.delay(submission_pk=submission.pk, force_merge=True)
+    force_grade.short_description = "Force grading and merge of selected submissions"
 
 
 @admin.register(AssignmentTestCase)
