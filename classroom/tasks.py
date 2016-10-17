@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 from django.db.models import Sum
 from django.conf import settings
+from django.core.exceptions import ObjectDoesNotExist
 
 from celery import shared_task
 from celery.utils.log import get_task_logger
@@ -28,8 +29,8 @@ COURSE_REPO = getattr(settings, 'COURSE_REPO', None)
 
 TESTCASE_TIMEOUT = 1
 GCC_TEMPLATE = 'gcc -Wall -std=c11 -pedantic {0} -o {1} -lm 2>&1'
-FILENAME_TEMPLATES = ('.*task(\d+)\.[cC]$', '(\d\d+)_.*\.[cC]$')
-FOLDER_TEMPLATE = ('([ABVG])\/(\d+)\/(\d+)\/.+[cC]$')
+FILENAME_TEMPLATES = ('(\d+)_.*\.[cC]', '.*task(\d+)\.[cC]$')
+FOLDER_TEMPLATE = ('([ABVG])\/(\d+)\/(\d+)\/(.+\.[cC])$')
 
 
 class TaskStatus(Enum):
@@ -77,14 +78,18 @@ def review_submission(submission_pk, force_merge):
             unrecognized_files = []
 
             for current in pull.files():
-                abs_path = path.join(path.join(course_dir, str(pull.user.id)), current)
-                student_class, hw_number, student_number = get_info_from_filename(current.filename)
-                task_index = get_task_number_from_filename(current.filename)
+                abs_path = path.join(path.join(course_dir, str(pull.user.id)), current.filename)
+                student_class, hw_number, student_number, filename = get_info_from_filename(current.filename)
+
+                task_index = get_task_number_from_filename(filename)
 
                 if not student_class:
                     continue
 
-                homework = Assignment.objects.filter(number=hw_number)
+                try:
+                    homework = Assignment.objects.get(number=hw_number)
+                except ObjectDoesNotExist:
+                    homework = None
 
                 if not homework:
                     pull.create_comment('I cannot recognize and grade homework for file `{}`'.format(current))
@@ -110,11 +115,13 @@ def review_submission(submission_pk, force_merge):
 
                 completed_tasks.append(task_index)
                 task = {}
+                task['ratio'] = homework.get_current_score_ratio()
+                task['homework'] = homework.number
                 task['name'] = selected.title
                 task['index'] = task_index
                 task['points'] = selected.points
 
-                compiled_name = current.split('.')[0] + '.out'
+                compiled_name = filename.split('.')[0] + '.out'
                 exec_path = path.abspath(path.join(course_dir, compiled_name))
 
                 gcc_invoke = GCC_TEMPLATE.format(shlex.quote(abs_path),
@@ -264,9 +271,9 @@ def get_info_from_filename(filename):
     """
     match = re.match(FOLDER_TEMPLATE, filename, flags=0)
     if match:
-        return (str(match.group(1)), int(match.group(2)), int(match.group(3)))
+        return (str(match.group(1)), int(match.group(2)), int(match.group(3)), str(match.group(4)))
 
-    return (None, None, None)
+    return (None, None, None, None)
 
 
 def get_task_number_from_filename(filename):

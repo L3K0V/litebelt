@@ -118,3 +118,5 @@ media
 googledrive.json
 
 initial.yaml
+
+*.csv

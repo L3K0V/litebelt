@@ -96,7 +96,7 @@ class AssignmentSubmissionAdmin(admin.ModelAdmin):
     def force_grade_and_merge(self, request, queryset):
         for submission in queryset.filter(merged=False):
             review_submission.delay(submission_pk=submission.pk, force_merge=True)
-    force_grade.short_description = "Force grading and merge of selected submissions"
+    force_grade_and_merge.short_description = "Force grading and merge of selected submissions"
 
 
 @admin.register(AssignmentTestCase)
