@@ -143,12 +143,10 @@ class Student(models.Model):
 class Assignment(models.Model):
     name = models.CharField(max_length=64)
 
-    number = models.PositiveIntegerField(default=1)
+    number = models.PositiveIntegerField(unique=True)
 
     start = models.DateTimeField()
     end = models.DateTimeField()
-
-    code = models.CharField(max_length=200, default=uuid.uuid4, editable=False)
 
     date_created = models.DateTimeField(auto_now_add=True)
     date_modified = models.DateTimeField(auto_now=True)
@@ -205,14 +203,11 @@ class AssignmentTestCase(models.Model):
 
 class AssignmentSubmission(models.Model):
     author = models.ForeignKey(Student)
-
-    assignment = models.ForeignKey('Assignment', related_name='submissions')
-
-    pull_request = models.URLField(blank=True, null=True)
+    pull_request = models.URLField(blank=True, null=True, unique=True)
+    merged = models.BooleanField(default=False)
 
     def __str__(self):
         return self.pull_request
 
     class Meta:
-        unique_together = ('assignment', 'pull_request',)
         verbose_name = 'Submission'

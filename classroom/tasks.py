@@ -7,7 +7,7 @@ from celery import shared_task
 from celery.utils.log import get_task_logger
 
 from classroom.utils import HeadquartersHelper
-from classroom.models import GithubUser, Student, AssignmentTask, AssignmentSubmission
+from classroom.models import GithubUser, Student, Assignment, AssignmentTask, AssignmentSubmission
 
 import re
 import shlex
@@ -15,7 +15,7 @@ import math
 import tempfile
 import itertools
 from enum import Enum
-from os import path, walk, sep
+from os import path, sep
 from subprocess import Popen, PIPE, TimeoutExpired
 
 from git import Repo, GitCommandError
@@ -29,6 +29,7 @@ COURSE_REPO = getattr(settings, 'COURSE_REPO', None)
 TESTCASE_TIMEOUT = 1
 GCC_TEMPLATE = 'gcc -Wall -std=c11 -pedantic {0} -o {1} -lm 2>&1'
 FILENAME_TEMPLATES = ('.*task(\d+)\.[cC]$', '(\d\d+)_.*\.[cC]$')
+FOLDER_TEMPLATE = ('([ABVG])\/(\d+)\/(\d+)\/.+[cC]$')
 
 
 class TaskStatus(Enum):
@@ -61,12 +62,7 @@ def review_submission(submission_pk):
     if not student:
         pull.create_comment('User not recognized as student, calling the police!')
         pull.close()
-        pass
-
-    working_dir = path.join(path.join(course_dir, str(pull.user.id)), '{}/{}/{}/'.format(
-                            student.student_class,
-                            str(submission.assignment.number).zfill(2),
-                            str(student.student_number).zfill(2)))
+        return
 
     with tempfile.NamedTemporaryFile() as temp:
         temp.write(pull.patch())
@@ -76,27 +72,27 @@ def review_submission(submission_pk):
             repo.git.checkout('HEAD', b='review#{}'.format(submission.id))
             repo.git.am('--ignore-space-change', '--ignore-whitespace', temp.name)
 
-            files = []
-            for root, _, filenames in walk(working_dir, topdown=False):
-                files += [
-                    (f, path.abspath(path.join(working_dir, f)))
-                    for f
-                    in filenames
-                    if (path.isfile(path.join(root, f)) and
-                        (f.endswith('.c') or f.endswith('.C')))
-                ]
-
-            # if everything is okay - merge and pull
             summary = []
             completed_tasks = []
             unrecognized_files = []
 
-            tasks = AssignmentTask.objects.filter(assignment=submission.assignment)
-            tasks_count = len(tasks)
-            tasks_points = tasks.aggregate(Sum('points'))
+            for current in pull.files():
+                abs_path = path.join(path.join(course_dir, str(pull.user.id)), current)
+                student_class, hw_number, student_number = get_info_from_filename(current.filename)
+                task_index = get_task_number_from_filename(current.filename)
 
-            for current, abs_path in files:
-                task_index = get_task_number_from_filename(current)
+                if not student_class:
+                    continue
+
+                homework = Assignment.objects.filter(number=hw_number)
+
+                if not homework:
+                    pull.create_comment('I cannot recognize and grade homework for file `{}`'.format(current))
+                    continue
+
+                tasks = AssignmentTask.objects.filter(assignment=homework)
+                tasks_count = len(tasks)
+                tasks_points = tasks.aggregate(Sum('points'))
 
                 if (task_index is None or
                         task_index > tasks_count or
@@ -104,6 +100,10 @@ def review_submission(submission_pk):
                     unrecognized_files.append({
                         'name': current
                     })
+                    continue
+
+                if student_class is not student.student_class or student_number is not student.student_number:
+                    pull.create_comment('File `{}` is not it your personal folder! I cannot merge this!'.format(current))
                     continue
 
                 selected = tasks.get(number=task_index)
@@ -115,8 +115,7 @@ def review_submission(submission_pk):
                 task['points'] = selected.points
 
                 compiled_name = current.split('.')[0] + '.out'
-                exec_path = path.abspath(
-                    path.join(course_dir, compiled_name))
+                exec_path = path.abspath(path.join(course_dir, compiled_name))
 
                 gcc_invoke = GCC_TEMPLATE.format(shlex.quote(abs_path),
                                                  shlex.quote(exec_path))
@@ -207,7 +206,7 @@ def review_submission(submission_pk):
 
         except GitCommandError as e:
             print(e)
-            pull.create_comment('I have some troubles!')
+            pull.create_comment('I have some troubles with git!\n\n```\n{}\n```\n'.format(e))
         finally:
             try:
                 print('Cleanup...')
@@ -248,6 +247,26 @@ def is_valid_taskname(filename):
             return True
 
     return False
+
+
+def is_vaid_filename(filename):
+    match = re.match(FOLDER_TEMPLATE, filename, flags=0)
+    if match:
+        return True
+
+    return False
+
+
+def get_info_from_filename(filename):
+    """
+    Geeting specific infor from the filename.
+    Returns tuple of students' class, homework and student's number
+    """
+    match = re.match(FOLDER_TEMPLATE, filename, flags=0)
+    if match:
+        return (str(match.group(1)), int(match.group(2)), int(match.group(3)))
+
+    return (None, None, None)
 
 
 def get_task_number_from_filename(filename):
