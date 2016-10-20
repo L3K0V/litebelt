@@ -1,8 +1,8 @@
-import uuid
 from django.db import models
 from django.utils import timezone
 from django.conf import settings
 import math
+from django.db.models import Sum
 
 from django.db.models.signals import post_save
 from django.dispatch import receiver
@@ -143,12 +143,10 @@ class Student(models.Model):
 class Assignment(models.Model):
     name = models.CharField(max_length=64)
 
-    number = models.PositiveIntegerField(default=1)
+    number = models.PositiveIntegerField(unique=True)
 
     start = models.DateTimeField()
     end = models.DateTimeField()
-
-    code = models.CharField(max_length=200, default=uuid.uuid4, editable=False)
 
     date_created = models.DateTimeField(auto_now_add=True)
     date_modified = models.DateTimeField(auto_now=True)
@@ -164,6 +162,10 @@ class Assignment(models.Model):
 
         return 1.0 * (0.7 ** int(multipler))
 
+    def get_overall_points(self):
+        tasks = self.tasks.all()
+        return tasks.aggregate(Sum('points'))['points__sum']
+
     def __str__(self):
         return self.name
 
@@ -174,11 +176,14 @@ class Assignment(models.Model):
 class AssignmentTask(models.Model):
 
     title = models.CharField(max_length=64, blank=False)
+    description = models.TextField(blank=True, default='')
 
     assignment = models.ForeignKey('Assignment', related_name='tasks')
 
     number = models.PositiveIntegerField(default=1)
     points = models.PositiveSmallIntegerField(default=1)
+
+    flags = models.TextField(max_length=1024, blank=True)
 
     def __str__(self):
         return 'Task {} - {}'.format(self.number, self.assignment)
@@ -194,8 +199,6 @@ class AssignmentTestCase(models.Model):
     case_input = models.TextField(max_length=8096, blank=True)
     case_output = models.TextField(max_length=8096, blank=True)
 
-    flags = models.TextField(max_length=1024, blank=True)
-
     def __str__(self):
         return 'Testcase {}'.format(self.id)
 
@@ -205,14 +208,11 @@ class AssignmentTestCase(models.Model):
 
 class AssignmentSubmission(models.Model):
     author = models.ForeignKey(Student)
-
-    assignment = models.ForeignKey('Assignment', related_name='submissions')
-
-    pull_request = models.URLField(blank=True, null=True)
+    pull_request = models.URLField(blank=True, null=True, unique=True)
+    merged = models.BooleanField(default=False)
 
     def __str__(self):
         return self.pull_request
 
     class Meta:
-        unique_together = ('assignment', 'pull_request',)
         verbose_name = 'Submission'

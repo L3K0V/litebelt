@@ -116,3 +116,7 @@ db.sqlite3
 media
 
 googledrive.json
+
+initial.yaml
+
+*.csv
