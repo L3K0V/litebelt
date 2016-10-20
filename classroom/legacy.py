@@ -26,7 +26,7 @@ def execute(directory, student_class, student_number, homework, penalty):
 
     # Legacy script args
     tasks_dict = {'task': tmp_tasks}
-    args = [abs_path, '/dev/null', '--failed-output']
+    args = [abs_path, '/dev/null']
     log = StringIO()
 
     def post_process(summary):
