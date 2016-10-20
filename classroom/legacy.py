@@ -1,6 +1,5 @@
 from io import StringIO
 import os
-import pprint
 
 from elsys_tools.homework.evaluator import main as legacy_script
 from elsys_tools.homework.evaluator import get_points_for_task

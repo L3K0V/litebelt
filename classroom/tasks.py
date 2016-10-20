@@ -56,6 +56,9 @@ def review_submission(submission_pk, force_merge=False):
 
     api, repo, pull = initialize_repo(submission, COURSE_DIR, gh)
 
+    if pull.is_merged():
+        return
+
     student = Student.objects.get(user__github_id=pull.user.id)
     if not student:
         pull.create_comment('User not recognized as student, calling the police!')
