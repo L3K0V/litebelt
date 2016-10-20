@@ -45,7 +45,7 @@ class ExecutionStatus(Enum):
 
 
 @shared_task()
-def review_submission(submission_pk, force_merge):
+def review_submission(submission_pk, force_merge=False):
 
     gh = login(token=GENADY_TOKEN)
 
