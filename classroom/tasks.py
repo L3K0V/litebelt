@@ -300,7 +300,7 @@ def execute(command, input=None, timeout=1):
     return (std_out, std_err, proc.returncode)
 
 
-def publish_result(summary, unrecognized, pull, points, penalty):
+def publish_result(summary, unrecognized, pull, points, force_merge):
     sb = []
     for task in sorted(summary, key=lambda x: x['task']['index']):
         task_ = task["task"]
