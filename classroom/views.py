@@ -33,7 +33,7 @@ def handle(request):
         pull_request=data['pull_request']['html_url'])
 
     if new_submission:
-        review_submission.delay(submission_pk=new_submission.pk)
+        review_submission.delay(submission_pk=new_submission.pk, force_merge=False)
         if created:
             return HttpResponse('Submission created, now processing!', status=201)
         else:

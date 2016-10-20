@@ -289,7 +289,7 @@ def remove_path_from_output(folder, output):
 
 
 def execute(command, input=None, timeout=1):
-    proc = Popen(command, shell=True, stdout=PIPE, stderr=PIPE)
+    proc = Popen(command, shell=True, stdout=PIPE, stderr=PIPE, stdin=PIPE)
 
     try:
         std_out, std_err = proc.communicate(timeout=timeout, input=input)
