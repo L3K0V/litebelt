@@ -71,7 +71,7 @@ def review_submission(submission_pk, force_merge=False):
         try:
             # Create working branch and apply the pull-request patch on it
             repo.git.checkout('HEAD', b='review#{}'.format(submission.id))
-            repo.git.am('--ignore-space-change', '--ignore-whitespace', temp.name)
+            repo.git.am('--ignore-space-change', '--ignore-whitespace', '--whitespace=fix', temp.name)
 
             homeworks_dict = defaultdict(lambda: {})
 
