@@ -2,7 +2,7 @@ Django==1.10.1
 dj-database-url==0.4.1
 -e git://github.com/celery/django-celery.git@1612037675a25457de067a5ac0d6d511736e130e#egg=django_celery
 -e git+https://github.com/sigmavirus24/github3.py.git@bbed706433db4c37fbc826f8eab92701b0be5bea#egg=github3.py
--e git+https://github.com/elsys/elsys-teachers-tools.git@ec7334c8e74c6235124fa546bc9fa87a0794a9b1#egg=elsys_teachers_tools
+-e git+https://github.com/elsys/elsys-teachers-tools.git@353aa36584125a852ca41d0a422dba030e6f4611#egg=elsys_teachers_tools
 GitPython==2.0.8
 gspread==0.4.1
 psycopg2==2.6.2
