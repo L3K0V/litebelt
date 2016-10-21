@@ -75,11 +75,14 @@ def review_submission(submission_pk, force_merge=False):
 
             homeworks_dict = defaultdict(lambda: {})
 
+            happy_merging = True
+
             for current in pull.files():
                 student_class, hw_number, student_number, filename = get_info_from_filename(current.filename)
 
                 if not student_class:
                     pull.create_comment('Wrong working dir for file `{}`'.format(current))
+                    happy_merging = False
                     continue
 
                 try:
@@ -89,15 +92,15 @@ def review_submission(submission_pk, force_merge=False):
 
                 if not homework:
                     pull.create_comment('I cannot recognize and grade homework for file `{}`'.format(current))
+                    happy_merging = False
                     continue
 
                 if student_class is not student.student_class or student_number is not student.student_number:
                     pull.create_comment('File `{}` is not it your personal folder! I cannot merge this!'.format(current))
+                    happy_merging = False
                     continue
 
                 homeworks_dict[hw_number]['homework'] = homework
-
-            happy_merging = True
 
             for h, v in homeworks_dict.items():
                 summary, points = execute(path.join(COURSE_DIR, str(pull.user.id)),
