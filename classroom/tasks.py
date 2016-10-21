@@ -79,6 +79,7 @@ def review_submission(submission_pk, force_merge=False):
                 student_class, hw_number, student_number, filename = get_info_from_filename(current.filename)
 
                 if not student_class:
+                    pull.create_comment('Wrong working dir for file `{}`'.format(current))
                     continue
 
                 try:
@@ -109,7 +110,7 @@ def review_submission(submission_pk, force_merge=False):
                 publish_to_headquarters(points, student.user.get_full_name(),
                                         h, v['homework'].get_current_score_ratio())
 
-            merge(summary, pull, force_merge or happy_merging)
+            merge(pull, force_merge or happy_merging)
 
         except GitCommandError as e:
             print(e)
@@ -184,7 +185,7 @@ def get_task_number_from_filename(filename):
     return None
 
 
-def merge(summary, pull, force_merge):
+def merge(pull, force_merge):
     if force_merge:
         pull.create_comment('Merging...')
     else:
