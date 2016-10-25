@@ -71,7 +71,7 @@ def review_submission(submission_pk, force_merge=False):
         try:
             # Create working branch and apply the pull-request patch on it
             repo.git.checkout('HEAD', b='review#{}'.format(submission.id))
-            repo.git.am('--ignore-space-change', '--ignore-whitespace', '--whitespace=fix', temp.name)
+            repo.git.am('--ignore-space-change', '--ignore-whitespace', temp.name)
 
             homeworks_dict = defaultdict(lambda: {})
 
@@ -118,6 +118,10 @@ def review_submission(submission_pk, force_merge=False):
         except GitCommandError as e:
             print(e)
             pull.create_comment('I have some troubles with git!\n\n```\n{}\n```\n'.format(e))
+
+            # Abort patching on fail to prevent future errors regarding patching.
+            # We suppose this will return the local repo in clean rebase state.
+            repo.git.am('--abort')
         finally:
             try:
                 print('Cleanup...')
