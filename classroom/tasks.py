@@ -12,7 +12,6 @@ from classroom.models import GithubUser, Student, Assignment, AssignmentSubmissi
 
 import re
 from collections import defaultdict
-import tempfile
 import itertools
 from enum import Enum
 from os import path
@@ -65,73 +64,71 @@ def review_submission(submission_pk, force_merge=False):
         pull.close()
         return
 
-    with tempfile.NamedTemporaryFile() as temp:
-        temp.write(pull.patch())
-        temp.flush()
+    try:
+        # Create working branch and apply the pull-request patch on it
+        repo.git.fetch('origin', 'pull/{}/head:review#{}'.format(
+                       submission.pull_request.split('/')[-1], submission.id))
+        repo.git.checkout('review#{}'.format(submission.id))
+
+        homeworks_dict = defaultdict(lambda: {})
+
+        happy_merging = True
+
+        for current in pull.files():
+            student_class, hw_number, student_number, filename = get_info_from_filename(current.filename)
+
+            if not student_class:
+                pull.create_comment('Wrong working dir for file `{}`'.format(current))
+                happy_merging = False
+                continue
+
+            try:
+                homework = Assignment.objects.get(number=hw_number)
+            except ObjectDoesNotExist:
+                homework = None
+
+            if not homework:
+                pull.create_comment('I cannot recognize and grade homework for file `{}`'.format(current))
+                happy_merging = False
+                continue
+
+            if student_class is not student.student_class or student_number is not student.student_number:
+                pull.create_comment('File `{}` is not it your personal folder! I cannot merge this!'.format(current))
+                happy_merging = False
+                continue
+
+            homeworks_dict[hw_number]['homework'] = homework
+
+        for h, v in homeworks_dict.items():
+            summary, points = execute(path.join(COURSE_DIR, str(pull.user.id)),
+                                      student_class, student_number,
+                                      v['homework'], v['homework'].get_current_score_ratio())
+
+            happy_merging = happy_merging and (sum(points) == v['homework'].get_overall_points())
+
+            pull.create_comment(summary)
+            publish_to_headquarters(points, student.user.get_full_name(),
+                                    h, v['homework'].get_current_score_ratio())
+
+        merge(pull, force_merge or happy_merging)
+
+    except GitCommandError as e:
+        print(e)
+        pull.create_comment('I have some troubles with git!\n\n```\n{}\n```\n'.format(e))
+
+        # Abort patching on fail to prevent future errors regarding patching.
+        # We suppose this will return the local repo in clean rebase state.
+        repo.git.am('--abort')
+    finally:
         try:
-            # Create working branch and apply the pull-request patch on it
-            repo.git.checkout('HEAD', b='review#{}'.format(submission.id))
-            repo.git.am('--ignore-space-change', '--ignore-whitespace', temp.name)
-
-            homeworks_dict = defaultdict(lambda: {})
-
-            happy_merging = True
-
-            for current in pull.files():
-                student_class, hw_number, student_number, filename = get_info_from_filename(current.filename)
-
-                if not student_class:
-                    pull.create_comment('Wrong working dir for file `{}`'.format(current))
-                    happy_merging = False
-                    continue
-
-                try:
-                    homework = Assignment.objects.get(number=hw_number)
-                except ObjectDoesNotExist:
-                    homework = None
-
-                if not homework:
-                    pull.create_comment('I cannot recognize and grade homework for file `{}`'.format(current))
-                    happy_merging = False
-                    continue
-
-                if student_class is not student.student_class or student_number is not student.student_number:
-                    pull.create_comment('File `{}` is not it your personal folder! I cannot merge this!'.format(current))
-                    happy_merging = False
-                    continue
-
-                homeworks_dict[hw_number]['homework'] = homework
-
-            for h, v in homeworks_dict.items():
-                summary, points = execute(path.join(COURSE_DIR, str(pull.user.id)),
-                                          student_class, student_number,
-                                          v['homework'], v['homework'].get_current_score_ratio())
-
-                happy_merging = happy_merging and (sum(points) == v['homework'].get_overall_points())
-
-                pull.create_comment(summary)
-                publish_to_headquarters(points, student.user.get_full_name(),
-                                        h, v['homework'].get_current_score_ratio())
-
-            merge(pull, force_merge or happy_merging)
-
+            print('Cleanup...')
+            # Checkout master, clear repo state and delete work branch
+            repo.git.checkout('master')
+            repo.git.checkout('.')
+            repo.git.clean('-fd')
+            repo.git.branch(D='review#{}'.format(submission.id))
         except GitCommandError as e:
             print(e)
-            pull.create_comment('I have some troubles with git!\n\n```\n{}\n```\n'.format(e))
-
-            # Abort patching on fail to prevent future errors regarding patching.
-            # We suppose this will return the local repo in clean rebase state.
-            repo.git.am('--abort')
-        finally:
-            try:
-                print('Cleanup...')
-                # Checkout master, clear repo state and delete work branch
-                repo.git.checkout('master')
-                repo.git.checkout('.')
-                repo.git.clean('-fd')
-                repo.git.branch(D='review#{}'.format(submission.id))
-            except GitCommandError as e:
-                print(e)
 
 
 def clone_repo_if_needed(directory):
