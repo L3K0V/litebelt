@@ -3,7 +3,7 @@ from django.http import HttpResponse
 from classroom.models import Student
 from classroom.models import AssignmentSubmission
 
-from classroom.tasks import review_submission
+from classroom.tasks import review_submission, config_classroom_repo
 
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
@@ -40,3 +40,16 @@ def handle(request):
             return HttpResponse('Submission already created, now processing again!', 200)
     else:
         return HttpResponse('Submission cannot be created', status=202)
+
+
+@method_decorator(csrf_exempt)
+def register(request):
+    data = json.loads(request.body.decode("utf-8"))
+    if 'action' in data and data['action'] == 'created' and\
+       'po-' in data['repository']['name'] and data['repository']['private'] is True:
+
+        config_classroom_repo.delay(data['repository']['full_name'], request.get_host())
+
+        return HttpResponse('Cool we will setup the rest', status=200)
+
+    return HttpResponse('Ignoring this repo...', status=202)

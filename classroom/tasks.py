@@ -43,6 +43,18 @@ class ExecutionStatus(Enum):
 
 
 @shared_task()
+def config_classroom_repo(repo, host):
+
+    gh = login(token=GENADY_TOKEN)
+
+    repo_obj = gh.repository(repo.split('/')[-2], repo.split('/')[-1])
+    repo_obj.add_collaborator(gh.me())
+    repo_obj.create_hook('web',
+                         {'url': 'http://{}/{}'.format(host, 'github/receive'),
+                          'content_type': 'json'}, events=[u'push'], active=True)
+
+
+@shared_task()
 def review_submission(submission_pk, force_merge=False):
 
     gh = login(token=GENADY_TOKEN)

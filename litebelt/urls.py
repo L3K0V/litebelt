@@ -17,8 +17,11 @@ from django.conf.urls import url
 from django.contrib import admin
 
 from classroom.views import handle
+from classroom.views import register
 
 urlpatterns = [
     url(r'^admin/', admin.site.urls),
-    url(r'^github/receive$', handle)
+    url(r'^github/receive$', handle),
+    url(r'^github/classroom$', register),
+
 ]
